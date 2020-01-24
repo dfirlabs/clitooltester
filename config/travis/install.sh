@@ -7,7 +7,7 @@
 
 DPKG_PYTHON3_DEPENDENCIES="python3-yaml";
 
-DPKG_PYTHON3_TEST_DEPENDENCIES="python3-distutils python3-mock python3-pbr python3-setuptools python3-six";
+DPKG_PYTHON3_TEST_DEPENDENCIES="python3-coverage python3-distutils python3-mock python3-pbr python3-setuptools python3-six";
 
 RPM_PYTHON3_DEPENDENCIES="python3-pyyaml";
 
