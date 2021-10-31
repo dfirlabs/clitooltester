@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 """Installation and deployment script."""
 
-from __future__ import print_function
-
 import glob
 import os
 import sys
@@ -24,9 +22,9 @@ except ImportError:
   bdist_rpm = None
 
 version_tuple = (sys.version_info[0], sys.version_info[1])
-if version_tuple < (3, 5):
+if version_tuple < (3, 6):
   print((
-      'Unsupported Python version: {0:s}, version 3.5 or higher '
+      'Unsupported Python version: {0:s}, version 3.6 or higher '
       'required.').format(sys.version))
   sys.exit(1)
 
@@ -42,6 +40,7 @@ else:
   class BdistMSICommand(bdist_msi):
     """Custom handler for the bdist_msi command."""
 
+    # pylint: disable=invalid-name
     def run(self):
       """Builds an MSI."""
       # Command bdist_msi does not support the library version, neither a date
@@ -57,6 +56,7 @@ else:
   class BdistRPMCommand(bdist_rpm):
     """Custom handler for the bdist_rpm command."""
 
+    # pylint: disable=invalid-name
     def _make_spec_file(self):
       """Generates the text of an RPM spec file.
 
@@ -178,6 +178,30 @@ else:
       return python_spec_file
 
 
+def parse_requirements_from_file(path):
+  """Parses requirements from a requirements file.
+
+  Args:
+    path (str): path to the requirements file.
+
+  Yields:
+    str: name and optional version information of the required package.
+  """
+  with open(path, 'r') as file_object:
+    file_contents = file_object.read()
+
+  for requirement in pkg_resources.parse_requirements(file_contents):
+    try:
+      name = str(requirement.req)
+    except AttributeError:
+      name = str(requirement)
+
+    if name.startswith('pip '):
+      continue
+
+    yield name
+
+
 clitooltester_description = (
     'Command line tool tester (CLIToolTester)')
 
@@ -214,4 +238,6 @@ setup(
         ('share/doc/clitooltester', [
             'LICENSE', 'README']),
     ],
+    install_requires=parse_requirements_from_file('requirements.txt'),
+    tests_require=parse_requirements_from_file('test_requirements.txt'),
 )
