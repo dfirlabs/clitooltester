@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clitooltester"
+version = "20260502"
+description = "Command line tool tester (CLIToolTester)"
+maintainers = [
+    { name = "Joachim Metz", email = "joachim.metz@gmail.com" },
+]
+license = "Apache-2.0"
+license-files = ["ACKNOWLEDGEMENTS", "AUTHORS", "LICENSE"]
+readme = "README"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "PyYAML >= 3.10",
+]
+
+[project.urls]
+Homepage = "https://github.com/dfirlabs/clitooltester"
+Repository = "https://github.com/dfirlabs/clitooltester"
+
+[tool.setuptools]
+package-dir = {"clitooltester" = "clitooltester"}

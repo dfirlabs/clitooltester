@@ -1,37 +1,48 @@
 environment:
   matrix:
-  - DESCRIPTION: "Windows with 32-bit Python 3.9"
+  - DESCRIPTION: "Run tests on Windows with 32-bit Python 3.14"
     MACHINE_TYPE: "x86"
-    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-    PYTHON: "C:\\Python39"
-    PYTHON_VERSION: "3.9"
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+    PYTHON: "C:\\Python314"
+    PYTHON_VERSION: "3.14"
     L2TBINARIES_TRACK: "dev"
-  - DESCRIPTION: "Windows with 64-bit Python 3.9"
+    TARGET: tests
+  - DESCRIPTION: "Run tests on Windows with 64-bit Python 3.14"
     MACHINE_TYPE: "amd64"
-    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-    PYTHON: "C:\\Python39-x64"
-    PYTHON_VERSION: "3.9"
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+    PYTHON: "C:\\Python314-x64"
+    PYTHON_VERSION: "3.14"
     L2TBINARIES_TRACK: "dev"
-  - DESCRIPTION: "Mac OS with Python 3.9"
-    APPVEYOR_BUILD_WORKER_IMAGE: macos
-    HOMEBREW_NO_INSTALL_CLEANUP: 1
+    TARGET: tests
+  - DESCRIPTION: "Build wheel on Windows with 32-bit Python 3.14"
+    MACHINE_TYPE: "amd64"
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+    PYTHON: "C:\\Python314-x64"
+    PYTHON_VERSION: "3.14"
+    L2TBINARIES_TRACK: "dev"
+    TARGET: wheel
+  - DESCRIPTION: "Build wheel on Windows with 64-bit Python 3.14"
+    MACHINE_TYPE: "amd64"
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+    PYTHON: "C:\\Python314-x64"
+    PYTHON_VERSION: "3.14"
+    L2TBINARIES_TRACK: "dev"
+    TARGET: wheel
 
 install:
-- cmd: "%PYTHON%\\python.exe -m pip install -U pip setuptools wheel"
-- cmd: "%PYTHON%\\python.exe -m pip install pywin32 WMI"
-- cmd: "%PYTHON%\\python.exe %PYTHON%\\Scripts\\pywin32_postinstall.py -install"
-- ps: If ($isWindows) { .\config\appveyor\install.ps1 }
-- sh: config/appveyor/install.sh
+- cmd: "%PYTHON%\\python.exe -m pip install -U build pip setuptools twine wheel"
+- ps: .\config\appveyor\install.ps1
 
 build_script:
-- cmd: "%PYTHON%\\python.exe setup.py bdist_msi bdist_wheel"
+- cmd: IF [%TARGET%]==[wheel] (
+    "%PYTHON%\\python.exe" -m build --wheel )
 
 test_script:
-- cmd: "%PYTHON%\\python.exe run_tests.py"
-- cmd: IF EXIST "tests\\end-to-end.py" (
-    set PYTHONPATH=. &&
-    "%PYTHON%\\python.exe" "tests\\end-to-end.py" --debug -c "config\\end-to-end.ini" )
-- sh: config/appveyor/runtests.sh
+- cmd: IF [%TARGET%]==[tests] (
+    "%PYTHON%\\python.exe" run_tests.py &&
+    IF EXIST "tests\\end-to-end.py" (
+        set PYTHONPATH=. &&
+        "%PYTHON%\\python.exe" "tests\\end-to-end.py" --debug -c "config\\end-to-end.ini" ) )
 
 artifacts:
 - path: dist\*.whl

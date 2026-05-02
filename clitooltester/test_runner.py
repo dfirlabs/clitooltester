@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 """Command line tool test runner."""
 
 from __future__ import unicode_literals
 
 
-class TestRunner(object):
+class TestRunner:
   """Command line tool test runner."""
 
   def ReadConfiguration(self, path):

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Command line tool definitions."""
 
 from __future__ import unicode_literals
@@ -11,7 +10,7 @@ except ImportError:
   import configparser  # pylint: disable=import-error
 
 
-class CLIToolDefinition(object):
+class CLIToolDefinition:
   """Command line tool definition.
 
   Attributes:
@@ -25,12 +24,12 @@ class CLIToolDefinition(object):
     Args:
       name (str): name of the command line tool.
     """
-    super(CLIToolDefinition, self).__init__()
+    super().__init__()
     self.name = name
     self.path = None
 
 
-class CLIToolDefinitionReader(object):
+class CLIToolDefinitionReader:
   """Command line tool definition reader."""
 
   def _GetConfigValue(self, config_parser, section_name, value_name):

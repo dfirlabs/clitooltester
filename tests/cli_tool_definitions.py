@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 """Tests for the command line tool definitions."""
 
 from __future__ import unicode_literals
