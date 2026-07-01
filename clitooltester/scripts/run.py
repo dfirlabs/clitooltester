@@ -15,9 +15,8 @@ def Main():
       int: exit code that is provided to sys.exit().
     """
     argument_parser = argparse.ArgumentParser(
-        description=("Runs command line tool tests.")
+        description="Runs command line tool tests."
     )
-
     argument_parser.add_argument(
         "-d",
         "--debug",
@@ -26,7 +25,6 @@ def Main():
         default=False,
         help="enable debug output.",
     )
-
     argument_parser.add_argument(
         "configuration",
         nargs="?",
@@ -35,7 +33,6 @@ def Main():
         default=None,
         help="path of the configuration file.",
     )
-
     options = argument_parser.parse_args()
 
     if not options.configuration:

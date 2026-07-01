@@ -10,8 +10,8 @@ maintainers = [
     { name = "Joachim Metz", email = "joachim.metz@gmail.com" },
 ]
 license = "Apache-2.0"
-license-files = ["ACKNOWLEDGEMENTS", "AUTHORS", "LICENSE"]
-readme = "README"
+license-files = ["LICENSE"]
+readme = "README.md"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Programming Language :: Python",
@@ -47,3 +47,8 @@ CLIToolTester is a framework to test command line tools. \
 
 [tool.setuptools]
 package-dir = {"clitooltester" = "clitooltester"}
+
+[tool.setuptools.package-data]
+clitooltester = [
+    "data/*.yaml",
+]
