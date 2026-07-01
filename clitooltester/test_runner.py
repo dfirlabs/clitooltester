@@ -4,11 +4,11 @@ from __future__ import unicode_literals
 
 
 class TestRunner:
-  """Command line tool test runner."""
+    """Command line tool test runner."""
 
-  def ReadConfiguration(self, path):
-    """Reads the configuration from a file.
+    def ReadConfiguration(self, path):
+        """Reads the configuration from a file.
 
-    Args:
-      path (str): path of the configuration file.
-    """
+        Args:
+          path (str): path of the configuration file.
+        """
