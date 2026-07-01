@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "clitooltester"
-version = "20260502"
+version = "20260701"
 description = "Command line tool tester (CLIToolTester)"
 maintainers = [
     { name = "Joachim Metz", email = "joachim.metz@gmail.com" },
@@ -21,9 +21,29 @@ dependencies = [
     "PyYAML >= 3.10",
 ]
 
+[project.scripts]
+run = "clitooltester.scripts.run:Main"
+
 [project.urls]
 Homepage = "https://github.com/dfirlabs/clitooltester"
 Repository = "https://github.com/dfirlabs/clitooltester"
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+include = "\\.pyi?$"
+
+[tool.docformatter]
+black = true
+non-cap = []
+non-strict = true
+
+[tool.l2tdevtools]
+name = "CLIToolTester"
+status = "alpha"
+description = """
+CLIToolTester is a framework to test command line tools. \
+"""
 
 [tool.setuptools]
 package-dir = {"clitooltester" = "clitooltester"}

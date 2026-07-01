@@ -1,3 +1,3 @@
 """Command line tool tester (CLIToolTester)."""
 
-__version__ = '20191217'
+__version__ = "20191217"
