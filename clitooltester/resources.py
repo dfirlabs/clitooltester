@@ -1,6 +1,21 @@
 """Resources."""
 
 
+class InputDefinition:
+    """Input definition.
+
+    Attributes:
+      name (str): name that uniquely identifies the input.
+      path (str): location of the input.
+    """
+
+    def __init__(self):
+        """Initializes an input definition."""
+        super().__init__()
+        self.name = None
+        self.path = None
+
+
 class TestDefinition:
     """Test definition.
 
