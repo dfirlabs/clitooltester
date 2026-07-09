@@ -80,6 +80,7 @@ class PackageDefinition:
         """Initializes a package definition."""
         super().__init__()
         self.build = None
+        self.build_env = None
         self.path = None
 
 
