@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "clitooltester"
-version = "20260708"
+version = "20260709"
 description = "Command line tool tester (CLIToolTester)"
 maintainers = [
     { name = "Joachim Metz", email = "joachim.metz@gmail.com" },
@@ -25,6 +25,7 @@ dependencies = [
 run = "clitooltester.scripts.run:Main"
 
 [project.urls]
+Documentation = "https://clitooltester.readthedocs.io/en/latest"
 Homepage = "https://github.com/dfirlabs/clitooltester"
 Repository = "https://github.com/dfirlabs/clitooltester"
 
