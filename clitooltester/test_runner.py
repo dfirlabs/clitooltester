@@ -28,19 +28,22 @@ class TestRunner:
 
         test_values = {}
 
+        test_description = f"{test_definition.name:s}"
         arguments = ["docker", "run", "--rm"]
 
         if test_input:
             path = pathlib.Path(test_input.path)
 
             arguments.extend(["-v", f"{path.parent!s}:/input:z"])
-
+            test_description = f"{test_description:s} with input: {test_input.name:s}"
             test_values["%input%"] = f"/input/{path.name:s}"
 
         docker_definition = test_definition.docker
 
         command = self._SubstitutePlaceholders(test_definition.command, test_values)
         arguments.extend([docker_definition.tag, command])
+
+        print(test_description, end="")
 
         result = subprocess.run(
             arguments,
@@ -49,10 +52,13 @@ class TestRunner:
             shell=True,
             text=True,
         )
+        padding_length = max(1, 72 - len(test_description))
+        print(" " * padding_length, end="")
+
         if result.returncode == 0:
-            print(" \033[32mok\033[0m")
+            print("\033[32mok\033[0m")
         else:
-            print(" \033[31mFAILED\033[0m")
+            print("\033[31mFAILED\033[0m")
 
             if result.stdout:
                 print(result.stdout)
@@ -77,7 +83,7 @@ class TestRunner:
         if not test_definition.package:
             raise ValueError("Invalid test definition - missing package configuration")
 
-        test_description = f"Running: {test_definition.name:s}"
+        test_description = f"{test_definition.name:s}"
         test_values = {"%package%": test_definition.package.path}
 
         if test_input:
@@ -96,10 +102,13 @@ class TestRunner:
             shell=True,
             text=True,
         )
+        padding_length = max(1, 72 - len(test_description))
+        print(" " * padding_length, end="")
+
         if result.returncode == 0:
-            print(" \033[32mok\033[0m")
+            print("\033[32mok\033[0m")
         else:
-            print(" \033[31mFAILED\033[0m")
+            print("\033[31mFAILED\033[0m")
 
             if result.stdout:
                 print(result.stdout)

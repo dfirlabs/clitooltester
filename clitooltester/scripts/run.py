@@ -2,7 +2,6 @@
 """Script to run command line tool tests."""
 
 import argparse
-import logging
 import sys
 
 from clitooltester import test_runner
@@ -50,32 +49,50 @@ def Main():
         print("")
         return 1
 
-    logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
-
     runner = test_runner.TestRunner()
 
     test_definition = runner.ReadTestConfiguration(options.configuration)
     if getattr(test_definition.package, "build"):
-        exit_code = runner.BuildPackage(test_definition)
-        if exit_code != 0:
-            print("[ERROR] build failed")
+        if runner.BuildPackage(test_definition) != 0:
+            print("\033[31mERROR: build failed\033[0m")
             return 1
 
-    result = 0
-    if options.inputs:
-        for input_definition in runner.ReadInputsConfiguration(options.inputs):
-            exit_code = runner.RunTest(test_definition, test_input=input_definition)
-            if exit_code != 0:
-                print("[ERROR] test with input: {input_definition.path:s} failed")
-                result = 1
+    number_of_tests = 0
+    number_of_failed_tests = 0
 
+    if not options.inputs:
+        if runner.RunTest(test_definition) != 0:
+            number_of_failed_tests += 1
+
+        number_of_tests += 1
     else:
-        exit_code = runner.RunTest(test_definition)
-        if exit_code != 0:
-            print("[ERROR] test failed")
-            result = 1
+        for input_definition in runner.ReadInputsConfiguration(options.inputs):
+            if runner.RunTest(test_definition, test_input=input_definition) != 0:
+                number_of_failed_tests += 1
 
-    return result
+            number_of_tests += 1
+
+    print("\nTest results.\n")
+
+    if number_of_failed_tests != 0:
+        if number_of_tests == 1:
+            print(
+                f"\033[31mERROR: 1 test was run,\n{number_of_failed_tests:d} failed "
+                f"unexpectedly.\033[0m"
+            )
+        else:
+            print(
+                f"\033[31mERROR: All {number_of_tests:d} tests were run,\n"
+                f"{number_of_failed_tests:d} failed unexpectedly.\033[0m"
+            )
+        return 1
+
+    if number_of_tests == 1:
+        print("\033[32m1 test was successful.\033[0m")
+    else:
+        print(f"\033[32mAll {number_of_tests:d} tests were successful.\033[0m")
+
+    return 0
 
 
 if __name__ == "__main__":
