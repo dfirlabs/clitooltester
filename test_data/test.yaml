@@ -1,4 +1,4 @@
 # clitooltester test.
 ---
 name: dfimagetools_recursive_hasher
-command: dfimagetools/scripts/recursive_hasher.py
+command: scripts/recursive_hasher.py %input%

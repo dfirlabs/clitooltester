@@ -31,8 +31,7 @@ class YAMLInputsDefinitionsFile:
           InputDefinition: input definition.
 
         Raises:
-          RuntimeError: if the format of the formatter definition is not set
-              or incorrect.
+          RuntimeError: if the format of the test definition is not set or incorrect.
         """
         if not yaml_input_definition:
             raise RuntimeError("Missing input definition values.")
@@ -57,10 +56,10 @@ class YAMLInputsDefinitionsFile:
         return input_definition
 
     def _ReadFromFileObject(self, file_object):
-        """Reads the event formatters from a file-like object.
+        """Reads the input definions from a file-like object.
 
         Args:
-          file_object (file): formatters file-like object.
+          file_object (file): input definions file-like object.
 
         Yields:
           InputDefinition: input definition.
@@ -71,10 +70,10 @@ class YAMLInputsDefinitionsFile:
             yield self._ReadInputDefinition(yaml_input_definition)
 
     def ReadFromFile(self, path):
-        """Reads the event formatters from a YAML file.
+        """Reads the input definitions from a YAML file.
 
         Args:
-          path (str): path to a formatters file.
+          path (str): path to a input definitions file.
 
         Yields:
           InputDefinition: input definition.
@@ -94,9 +93,34 @@ class YAMLTestDefinitionFile:
     Where:
     * name, that uniquely identifies the test;
     * command, with arguments, with can consist of placeholder values, such as: %input%.
+    * docker, Docker configuration.
     """
 
-    _SUPPORTED_KEYS = frozenset(["command", "name"])
+    _SUPPORTED_KEYS = frozenset(["command", "docker", "name"])
+
+    def _ReadDockerDefinition(self, yaml_docker_definition):
+        """Reads a Docker definition from a dictionary.
+
+        Args:
+          yaml_docker_definition (dict[str, object]): YAML Docker definition values.
+
+        Returns:
+          DockerDefinition: Docker definition.
+
+        Raises:
+          RuntimeError: if the format of the test definition is not set or incorrect.
+        """
+        if not yaml_docker_definition:
+            raise RuntimeError("Missing Docker definition values.")
+
+        tag = yaml_docker_definition.get("tag")
+        if not tag:
+            raise RuntimeError("Invalid Docker definition missing tag.")
+
+        docker_definition = resources.DockerDefinition()
+        docker_definition.tag = tag
+
+        return docker_definition
 
     def _ReadTestDefinition(self, yaml_test_definition):
         """Reads a test definition from a dictionary.
@@ -108,8 +132,7 @@ class YAMLTestDefinitionFile:
           TestDefinition: test definition.
 
         Raises:
-          RuntimeError: if the format of the formatter definition is not set
-              or incorrect.
+          RuntimeError: if the format of the test definition is not set or incorrect.
         """
         if not yaml_test_definition:
             raise RuntimeError("Missing test definition values.")
@@ -131,13 +154,17 @@ class YAMLTestDefinitionFile:
         test_definition.command = command
         test_definition.name = name
 
+        yaml_docker_definition = yaml_test_definition.get("docker")
+        if yaml_docker_definition:
+            test_definition.docker = self._ReadDockerDefinition(yaml_docker_definition)
+
         return test_definition
 
     def _ReadFromFileObject(self, file_object):
-        """Reads the event formatters from a file-like object.
+        """Reads the test definition from a file-like object.
 
         Args:
-          file_object (file): formatters file-like object.
+          file_object (file): test definition file-like object.
 
         Yields:
           TestDefinition: test definition.
@@ -148,10 +175,10 @@ class YAMLTestDefinitionFile:
             yield self._ReadTestDefinition(yaml_test_definition)
 
     def ReadFromFile(self, path):
-        """Reads the event formatters from a YAML file.
+        """Reads the test definition from a YAML file.
 
         Args:
-          path (str): path to a formatters file.
+          path (str): path to a test definition file.
 
         Yields:
           TestDefinition: test definition.
