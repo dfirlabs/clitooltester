@@ -40,13 +40,6 @@ class TestRunner:
 
         docker_definition = test_definition.docker
 
-        if docker_definition.dockerfile:
-            build_exit_code = self.BuildDockerImageFromDockerfile(
-                test_definition
-            )
-            if build_exit_code != 0:
-                return build_exit_code
-
         command = self._SubstitutePlaceholders(test_definition.command, test_values)
         arguments.extend([docker_definition.tag, command])
 
@@ -186,7 +179,7 @@ class TestRunner:
 
         return result.returncode
 
-    def BuildDockerImageFromDockerfile(self, test_definition):
+    def BuildDockerImage(self, test_definition):
         """Builds a Docker image from a Dockerfile.
 
         Args:
@@ -213,7 +206,6 @@ class TestRunner:
             test_definition.docker.dockerfile,
             ".",
         ]
-
         result = subprocess.run(
             arguments,
             capture_output=True,
@@ -222,7 +214,6 @@ class TestRunner:
             text=True,
         )
         if result.returncode != 0:
-            print("\033[31mDocker build FAILED\033[0m")
             if result.stdout:
                 print(result.stdout)
             if result.stderr:

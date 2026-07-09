@@ -6,7 +6,7 @@ class DockerDefinition:
 
     Attributes:
       command (str): command to run inside the Docker container.
-      dockerfile (str): path to a Dockerfile for building the image.
+      dockerfile (str): path to a Dockerfile for building the Docker image.
       tag (str): Docker image tag.
       volumes (list[DockerVolume]): volume mappings between host and container.
     """
