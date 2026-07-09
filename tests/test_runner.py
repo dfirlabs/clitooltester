@@ -5,6 +5,7 @@ import os
 import tempfile
 import unittest
 
+from contextlib import suppress
 from unittest import mock
 
 from clitooltester import resources
@@ -463,7 +464,8 @@ class TestRunnerTest(test_lib.BaseTestCase):
                 runner.ReadTestConfiguration(test_file_path)
 
         finally:
-            os.remove(test_file_path)
+            with suppress(PermissionError):
+                os.remove(test_file_path)
 
         # Test with multiple definitions
         yaml_content = "\n".join(
@@ -492,7 +494,8 @@ class TestRunnerTest(test_lib.BaseTestCase):
                 runner.ReadTestConfiguration(test_file_path)
 
         finally:
-            os.remove(test_file_path)
+            with suppress(PermissionError):
+                os.remove(test_file_path)
 
         # Test with empty file
         _, test_file_path = tempfile.mkstemp(suffix=".yaml")
@@ -506,7 +509,8 @@ class TestRunnerTest(test_lib.BaseTestCase):
                 runner.ReadTestConfiguration(test_file_path)
 
         finally:
-            os.remove(test_file_path)
+            with suppress(PermissionError):
+                os.remove(test_file_path)
 
     @mock.patch("clitooltester.test_runner.subprocess.run")
     def testRunTest(self, mock_subprocess_run):
