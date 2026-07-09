@@ -135,6 +135,19 @@ class YAMLTestDefinitionFileTest(test_lib.BaseTestCase):
 
         self.assertEqual(definitions[0].name, "dfimagetools_recursive_hasher")
 
+    def testReadFromFileWithDocker(self):
+        """Tests the ReadFromFile function on test that uses Docker."""
+        test_file_path = self._GetTestFilePath(["test_with_docker.yaml"])
+        self._SkipIfPathNotExists(test_file_path)
+
+        test_definitions_file = yaml_definitions_file.YAMLTestDefinitionFile()
+
+        definitions = list(test_definitions_file.ReadFromFile(test_file_path))
+
+        self.assertEqual(len(definitions), 1)
+
+        self.assertEqual(definitions[0].name, "dfimagetools_recursive_hasher_docker")
+
 
 if __name__ == "__main__":
     unittest.main()
