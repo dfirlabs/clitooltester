@@ -205,6 +205,7 @@ class YAMLTestDefinitionFile:
 
         docker_definition = resources.DockerDefinition()
         docker_definition.tag = tag
+        docker_definition.dockerfile = yaml_docker_definition.get("dockerfile")
 
         return docker_definition
 

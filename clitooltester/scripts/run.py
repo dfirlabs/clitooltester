@@ -57,6 +57,11 @@ def Main():
             print("\033[31mERROR: build failed\033[0m")
             return 1
 
+    if getattr(test_definition.docker, "dockerfile"):
+        if runner.BuildDockerImageFromDockerfile(test_definition) != 0:
+            print("\033[31mERROR: docker build failed\033[0m")
+            return 1
+
     number_of_tests = 0
     number_of_failed_tests = 0
 

@@ -6,6 +6,7 @@ class DockerDefinition:
 
     Attributes:
       command (str): command to run inside the Docker container.
+      dockerfile (str): path to a Dockerfile for building the image.
       tag (str): Docker image tag.
       volumes (list[DockerVolume]): volume mappings between host and container.
     """
@@ -14,6 +15,7 @@ class DockerDefinition:
         """Initializes a Docker definition."""
         super().__init__()
         self.command = None
+        self.dockerfile = None
         self.tag = None
         self.volumes = []
 
