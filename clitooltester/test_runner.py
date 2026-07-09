@@ -179,6 +179,48 @@ class TestRunner:
 
         return result.returncode
 
+    def BuildDockerImage(self, test_definition):
+        """Builds a Docker image from a Dockerfile.
+
+        Args:
+          test_definition (TestDefinition): test definition with Docker configuration.
+
+        Returns:
+          int: exit code from the test command.
+
+        Raises:
+          ValueError: if the Docker configuration is missing.
+        """
+        if not test_definition.docker:
+            raise ValueError("Invalid test definition - missing Docker configuration")
+
+        if not test_definition.docker.dockerfile:
+            raise ValueError("Invalid Docker definition - missing dockerfile")
+
+        arguments = [
+            "docker",
+            "build",
+            "-t",
+            test_definition.docker.tag,
+            "-f",
+            test_definition.docker.dockerfile,
+            ".",
+        ]
+        result = subprocess.run(
+            arguments,
+            capture_output=True,
+            check=False,
+            shell=False,
+            text=True,
+        )
+        if result.returncode != 0:
+            if result.stdout:
+                print(result.stdout)
+            if result.stderr:
+                print(result.stderr)
+
+        return result.returncode
+
     def ReadInputsConfiguration(self, path):
         """Reads the inputs configuration from a file.
 
