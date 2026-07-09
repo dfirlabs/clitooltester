@@ -10,11 +10,12 @@ from clitooltester import yaml_definitions_file
 class TestRunner:
     """Command line tool test runner."""
 
-    def _RunTestWithDocker(self, test_definition, test_input=None):
+    def _RunTestWithDocker(self, test_definition, silent=False, test_input=None):
         """Runs a test with Docker.
 
         Args:
           test_definition (TestDefinition): test definition with Docker configuration.
+          silent (Option[bool]): silence output, intended for testing.
           test_input (Optional[InputDefinition]): input definition.
 
         Returns:
@@ -43,7 +44,8 @@ class TestRunner:
         command = self._SubstitutePlaceholders(test_definition.command, test_values)
         arguments.extend([docker_definition.tag, command])
 
-        print(test_description, end="")
+        if not silent:
+            print(test_description, end="")
 
         result = subprocess.run(
             arguments,
@@ -52,26 +54,28 @@ class TestRunner:
             shell=True,
             text=True,
         )
-        padding_length = max(1, 72 - len(test_description))
-        print(" " * padding_length, end="")
+        if not silent:
+            padding_length = max(1, 72 - len(test_description))
+            print(" " * padding_length, end="")
 
-        if result.returncode == 0:
-            print("\033[32mok\033[0m")
-        else:
-            print("\033[31mFAILED\033[0m")
+            if result.returncode == 0:
+                print("\033[32mok\033[0m")
+            else:
+                print("\033[31mFAILED\033[0m")
 
-            if result.stdout:
-                print(result.stdout)
-            if result.stderr:
-                print(result.stderr)
+                if result.stdout:
+                    print(result.stdout)
+                if result.stderr:
+                    print(result.stderr)
 
         return result.returncode
 
-    def _RunTestWithPackage(self, test_definition, test_input=None):
+    def _RunTestWithPackage(self, test_definition, silent=False, test_input=None):
         """Runs a test.
 
         Args:
           test_definition (TestDefinition): test definition with Docker configuration.
+          silent (Option[bool]): silence output, intended for testing.
           test_input (Optional[InputDefinition]): input definition.
 
         Returns:
@@ -93,7 +97,8 @@ class TestRunner:
         command = self._SubstitutePlaceholders(test_definition.command, test_values)
         arguments = [command]
 
-        print(test_description, end="")
+        if not silent:
+            print(test_description, end="")
 
         result = subprocess.run(
             arguments,
@@ -102,18 +107,19 @@ class TestRunner:
             shell=True,
             text=True,
         )
-        padding_length = max(1, 72 - len(test_description))
-        print(" " * padding_length, end="")
+        if not silent:
+            padding_length = max(1, 72 - len(test_description))
+            print(" " * padding_length, end="")
 
-        if result.returncode == 0:
-            print("\033[32mok\033[0m")
-        else:
-            print("\033[31mFAILED\033[0m")
+            if result.returncode == 0:
+                print("\033[32mok\033[0m")
+            else:
+                print("\033[31mFAILED\033[0m")
 
-            if result.stdout:
-                print(result.stdout)
-            if result.stderr:
-                print(result.stderr)
+                if result.stdout:
+                    print(result.stdout)
+                if result.stderr:
+                    print(result.stderr)
 
         return result.returncode
 
@@ -136,11 +142,12 @@ class TestRunner:
 
         return command
 
-    def BuildPackage(self, test_definition):
+    def BuildPackage(self, test_definition, silent=False):
         """Builds a package before running tests.
 
         Args:
           test_definition (TestDefinition): test definition with Docker configuration.
+          silent (Option[bool]): silence output, intended for testing.
 
         Returns:
           int: exit code from the test command.
@@ -171,7 +178,7 @@ class TestRunner:
             shell=False,
             text=True,
         )
-        if result.returncode != 0:
+        if not silent and result.returncode != 0:
             if result.stdout:
                 print(result.stdout)
             if result.stderr:
@@ -179,11 +186,12 @@ class TestRunner:
 
         return result.returncode
 
-    def BuildDockerImage(self, test_definition):
+    def BuildDockerImage(self, test_definition, silent=False):
         """Builds a Docker image from a Dockerfile.
 
         Args:
           test_definition (TestDefinition): test definition with Docker configuration.
+          silent (Option[bool]): silence output, intended for testing.
 
         Returns:
           int: exit code from the test command.
@@ -213,7 +221,7 @@ class TestRunner:
             shell=False,
             text=True,
         )
-        if result.returncode != 0:
+        if not silent and result.returncode != 0:
             if result.stdout:
                 print(result.stdout)
             if result.stderr:
@@ -257,11 +265,12 @@ class TestRunner:
 
         return test_definitions[0]
 
-    def RunTest(self, test_definition, test_input=None):
+    def RunTest(self, test_definition, silent=False, test_input=None):
         """Runs a test.
 
         Args:
           test_definition (TestDefinition): test definition with Docker configuration.
+          silent (Option[bool]): silence output, intended for testing.
           test_input (Optional[InputDefinition]): input definition.
 
         Returns:
@@ -271,6 +280,10 @@ class TestRunner:
           ValueError: if the package configuration is missing.
         """
         if test_definition.docker:
-            return self._RunTestWithDocker(test_definition, test_input=test_input)
+            return self._RunTestWithDocker(
+                test_definition, silent=silent, test_input=test_input
+            )
 
-        return self._RunTestWithPackage(test_definition, test_input=test_input)
+        return self._RunTestWithPackage(
+            test_definition, silent=silent, test_input=test_input
+        )

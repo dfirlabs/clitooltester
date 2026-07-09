@@ -97,7 +97,7 @@ class YAMLInputsDefinitionsFile:
             raise RuntimeError("Invalid input set definition missing base path.")
 
         elements = yaml_input_set_definition.get("elements")
-        if not base_path:
+        if not elements:
             raise RuntimeError("Invalid input set definition missing elements.")
 
         input_set_definition = resources.InputSetDefinition()

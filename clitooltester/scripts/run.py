@@ -51,13 +51,21 @@ def Main():
 
     runner = test_runner.TestRunner()
 
-    test_definition = runner.ReadTestConfiguration(options.configuration)
-    if getattr(test_definition.package, "build"):
+    try:
+        test_definition = runner.ReadTestConfiguration(options.configuration)
+    except (FileNotFoundError, IOError, RuntimeError) as exception:
+        print(
+            f"Unable to read test configuration file: '{options.configuration:s}' "
+            f"with error: {exception!s}"
+        )
+        return 1
+
+    if test_definition.package and getattr(test_definition.package, "build"):
         if runner.BuildPackage(test_definition) != 0:
             print("\033[31mERROR: build failed\033[0m")
             return 1
 
-    if getattr(test_definition.docker, "dockerfile"):
+    if test_definition.docker and getattr(test_definition.docker, "dockerfile"):
         if runner.BuildDockerImage(test_definition) != 0:
             print("\033[31mERROR: docker build failed\033[0m")
             return 1
