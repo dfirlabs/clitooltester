@@ -79,7 +79,8 @@ class YAMLTestDefinitionFileTest(test_lib.BaseTestCase):
 
     _TEST_YAML = {
         "name": "dfimagetools_recursive_hasher",
-        "command": "dfimagetools/scripts/recursive_hasher.py",
+        "command": "%package%/dfimagetools/scripts/recursive_hasher.py %input%",
+        "package": {"path": "/home/user/dfimagetools"},
     }
 
     def testReadTestDefinition(self):
@@ -92,22 +93,44 @@ class YAMLTestDefinitionFileTest(test_lib.BaseTestCase):
         self.assertEqual(definitions.name, "dfimagetools_recursive_hasher")
         self.assertEqual(
             definitions.command,
-            "dfimagetools/scripts/recursive_hasher.py",
+            "%package%/dfimagetools/scripts/recursive_hasher.py %input%",
         )
+        self.assertIsNone(definitions.docker)
+        self.assertIsNotNone(definitions.package)
+        self.assertEqual(definitions.package.path, "/home/user/dfimagetools")
+
         with self.assertRaises(RuntimeError):
             test_yaml = {}
             test_definitions_file._ReadTestDefinition(test_yaml)
 
         with self.assertRaises(RuntimeError):
-            test_yaml = {"name": "dfimagetools_recursive_hasher"}
+            test_yaml = {
+                "command": "%package%/dfimagetools/scripts/recursive_hasher.py %input%",
+                "package": {"path": "/home/user/dfimagetools"},
+            }
             test_definitions_file._ReadTestDefinition(test_yaml)
 
         with self.assertRaises(RuntimeError):
-            test_yaml = {"command": "dfimagetools/scripts/recursive_hasher.py"}
+            test_yaml = {
+                "name": "dfimagetools_recursive_hasher",
+                "package": {"path": "/home/user/dfimagetools"},
+            }
             test_definitions_file._ReadTestDefinition(test_yaml)
 
         with self.assertRaises(RuntimeError):
-            test_yaml = {"bogus": "test"}
+            test_yaml = {
+                "name": "dfimagetools_recursive_hasher",
+                "command": "%package%/dfimagetools/scripts/recursive_hasher.py %input%",
+            }
+            test_definitions_file._ReadTestDefinition(test_yaml)
+
+        with self.assertRaises(RuntimeError):
+            test_yaml = {
+                "bogus": "test",
+                "name": "dfimagetools_recursive_hasher",
+                "command": "%package%/dfimagetools/scripts/recursive_hasher.py %input%",
+                "package": {"path": "/home/user/dfimagetools"},
+            }
             test_definitions_file._ReadTestDefinition(test_yaml)
 
     def testReadFromFileObject(self):
