@@ -1,5 +1,6 @@
 """YAML-based definitions files."""
 
+import os
 import yaml
 
 from clitooltester import resources
@@ -9,17 +10,27 @@ class YAMLInputsDefinitionsFile:
     """YAML-based inputs definitions file.
 
     A YAML-based inputs definitions file contains one or more input definitions. An
-    input definition consists of:
+    input definition consists of a single input:
 
     name: ext2
     path: test_data/ext2.raw
 
+    or a set of inputs:
+
+    set:
+      name: ext
+      base_path: test_data
+      elements:
+        name: ext2
+        path: ext2.raw
+
     Where:
     * name, that uniquely identifies the input;
-    * path, location of the input.
+    * path, location of the input;
+    * set, input set.
     """
 
-    _SUPPORTED_KEYS = frozenset(["name", "path"])
+    _SUPPORTED_KEYS = frozenset(["name", "path", "set"])
 
     def _ReadInputDefinition(self, yaml_input_definition):
         """Reads an input definition from a dictionary.
@@ -31,7 +42,7 @@ class YAMLInputsDefinitionsFile:
           InputDefinition: input definition.
 
         Raises:
-          RuntimeError: if the format of the test definition is not set or incorrect.
+          RuntimeError: if the format of the input definition is not set or incorrect.
         """
         if not yaml_input_definition:
             raise RuntimeError("Missing input definition values.")
@@ -41,19 +52,79 @@ class YAMLInputsDefinitionsFile:
             different_keys = ", ".join(different_keys)
             raise RuntimeError(f"Undefined keys: {different_keys:s}")
 
-        name = yaml_input_definition.get("name")
-        if not name:
-            raise RuntimeError("Invalid input definition missing name.")
+        input_set = yaml_input_definition.get("set")
 
-        path = yaml_input_definition.get("path")
-        if not path:
-            raise RuntimeError("Invalid input definition missing path.")
+        if input_set:
+            input_definition = self._ReadInputSetDefinition(input_set)
+        else:
+            name = yaml_input_definition.get("name")
+            if not name:
+                raise RuntimeError("Invalid input definition missing name.")
 
-        input_definition = resources.InputDefinition()
-        input_definition.name = name
-        input_definition.path = path
+            path = yaml_input_definition.get("path")
+            if not path:
+                raise RuntimeError("Invalid input definition missing path.")
+
+            input_definition = resources.InputDefinition()
+            input_definition.name = name
+            input_definition.path = path
 
         return input_definition
+
+    def _ReadInputSetDefinition(self, yaml_input_set_definition):
+        """Reads an input set definition from a dictionary.
+
+        Args:
+          yaml_input_set_definition (dict[str, object]): YAML input set definition
+              values.
+
+        Returns:
+          InputSetDefinition: input set definition.
+
+        Raises:
+          RuntimeError: if the format of the input set definition is not set or
+              incorrect.
+        """
+        if not yaml_input_set_definition:
+            raise RuntimeError("Missing input definition values.")
+
+        name = yaml_input_set_definition.get("name")
+        if not name:
+            raise RuntimeError("Invalid input set definition missing name.")
+
+        base_path = yaml_input_set_definition.get("base_path")
+        if not base_path:
+            raise RuntimeError("Invalid input set definition missing base path.")
+
+        elements = yaml_input_set_definition.get("elements")
+        if not base_path:
+            raise RuntimeError("Invalid input set definition missing elements.")
+
+        input_set_definition = resources.InputSetDefinition()
+        input_set_definition.base_path = base_path
+        input_set_definition.name = name
+
+        for index, element in enumerate(elements):
+            name = element.get("name")
+            if not name:
+                raise RuntimeError(
+                    f"Invalid input definition element: {index:d} missing name."
+                )
+
+            path = element.get("path")
+            if not path:
+                raise RuntimeError(
+                    f"Invalid input definition element {index:d} with name: {name:s} "
+                    f"missing path."
+                )
+
+            input_definition = resources.InputDefinition()
+            input_definition.name = name
+            input_definition.path = path
+
+            input_set_definition.elements.append(input_definition)
+
+        return input_set_definition
 
     def _ReadFromFileObject(self, file_object):
         """Reads the input definions from a file-like object.
@@ -67,7 +138,19 @@ class YAMLInputsDefinitionsFile:
         yaml_generator = yaml.safe_load_all(file_object)
 
         for yaml_input_definition in yaml_generator:
-            yield self._ReadInputDefinition(yaml_input_definition)
+            input_definition = self._ReadInputDefinition(yaml_input_definition)
+            if isinstance(input_definition, resources.InputDefinition):
+                yield input_definition
+            else:
+                for element in input_definition.elements:
+                    element_definition = resources.InputDefinition()
+                    element_definition.name = "/".join(
+                        [input_definition.name, element.name]
+                    )
+                    element_definition.path = os.path.join(
+                        input_definition.base_path, element.path
+                    )
+                    yield element_definition
 
     def ReadFromFile(self, path):
         """Reads the input definitions from a YAML file.

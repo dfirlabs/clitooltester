@@ -48,6 +48,24 @@ class InputDefinition:
         self.path = None
 
 
+class InputSetDefinition:
+    """Input set definition.
+
+    Attributes:
+      base_path (str): base location of the input set, where the location (or path)
+          of the elements are relative to the base location.
+      elements (list[InputDefinition]): elements in the input set.
+      name (str): name that uniquely identifies the input set.
+    """
+
+    def __init__(self):
+        """Initializes an input set definition."""
+        super().__init__()
+        self.base_path = None
+        self.elements = []
+        self.name = None
+
+
 class PackageDefinition:
     """Package definition.
 

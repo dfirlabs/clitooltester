@@ -71,6 +71,19 @@ class YAMLInputsDefinitionsFileTest(test_lib.BaseTestCase):
 
         self.assertEqual(definitions[0].name, "ext2")
 
+    def testReadFromFileWithSet(self):
+        """Tests the ReadFromFile function on inputs with a set."""
+        test_file_path = self._GetTestFilePath(["inputs_with_set.yaml"])
+        self._SkipIfPathNotExists(test_file_path)
+
+        test_definitions_file = yaml_definitions_file.YAMLInputsDefinitionsFile()
+
+        definitions = list(test_definitions_file.ReadFromFile(test_file_path))
+
+        self.assertEqual(len(definitions), 1)
+
+        self.assertEqual(definitions[0].name, "ext/ext2")
+
 
 class YAMLTestDefinitionFileTest(test_lib.BaseTestCase):
     """Tests for the YAML-based test definitions file."""
