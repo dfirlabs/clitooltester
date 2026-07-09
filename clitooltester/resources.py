@@ -48,14 +48,31 @@ class InputDefinition:
         self.path = None
 
 
+class PackageDefinition:
+    """Package definition.
+
+    Attributes:
+      build (str): command(s) to build the package.
+      path (str): location of the package.
+    """
+
+    def __init__(self):
+        """Initializes a package definition."""
+        super().__init__()
+        self.build = None
+        self.path = None
+
+
 class TestDefinition:
     """Test definition.
 
+    Commands support placeholder arguments like %input%.
+
     Attributes:
-      command (str): command with arguments, with can consist of placeholder values,
-          such as: %input%.
+      command (str): command with arguments.
       docker (DockerDefinition): Optional Docker configuration.
       name (str): name that uniquely identifies the test.
+      package (PackageDefinition): package definition.
     """
 
     def __init__(self):
@@ -64,3 +81,4 @@ class TestDefinition:
         self.command = None
         self.docker = None
         self.name = None
+        self.package = None

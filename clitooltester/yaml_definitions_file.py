@@ -87,16 +87,19 @@ class YAMLTestDefinitionFile:
 
     A YAML-based test definitions file contains a test definition, which consists of:
 
-    name: plaso_log2timeline_with_image.qcow2
-    command: log2timeline.py unattended %input%
+    name: plaso_log2timeline
+    command: log2timeline.py %input%
+    package:
+      path: /usr/bin
 
     Where:
     * name, that uniquely identifies the test;
     * command, with arguments, with can consist of placeholder values, such as: %input%.
     * docker, Docker configuration.
+    * package, package configuration.
     """
 
-    _SUPPORTED_KEYS = frozenset(["command", "docker", "name"])
+    _SUPPORTED_KEYS = frozenset(["command", "docker", "name", "package"])
 
     def _ReadDockerDefinition(self, yaml_docker_definition):
         """Reads a Docker definition from a dictionary.
@@ -108,7 +111,7 @@ class YAMLTestDefinitionFile:
           DockerDefinition: Docker definition.
 
         Raises:
-          RuntimeError: if the format of the test definition is not set or incorrect.
+          RuntimeError: if the format of the Docker definition is not set or incorrect.
         """
         if not yaml_docker_definition:
             raise RuntimeError("Missing Docker definition values.")
@@ -121,6 +124,32 @@ class YAMLTestDefinitionFile:
         docker_definition.tag = tag
 
         return docker_definition
+
+    def _ReadPackageDefinition(self, yaml_package_definition):
+        """Reads a package definition from a dictionary.
+
+        Args:
+          yaml_package_definition (dict[str, object]): YAML package definition values.
+
+        Returns:
+          PackageDefinition: package definition.
+
+        Raises:
+          RuntimeError: if the format of the package definition is not set or incorrect.
+        """
+        if not yaml_package_definition:
+            raise RuntimeError("Missing package definition values.")
+
+        path = yaml_package_definition.get("path")
+        if not path:
+            raise RuntimeError("Invalid package definition missing path.")
+
+        package_definition = resources.PackageDefinition()
+        package_definition.build = yaml_package_definition.get("build")
+        package_definition.build_env = yaml_package_definition.get("build_env")
+        package_definition.path = path
+
+        return package_definition
 
     def _ReadTestDefinition(self, yaml_test_definition):
         """Reads a test definition from a dictionary.
@@ -150,13 +179,19 @@ class YAMLTestDefinitionFile:
         if not name:
             raise RuntimeError("Invalid test definition missing name.")
 
+        docker_definition = yaml_test_definition.get("docker")
+        package_definition = yaml_test_definition.get("package")
+        if not docker_definition and not package_definition:
+            raise RuntimeError("Invalid test definition missing docker and package.")
+
         test_definition = resources.TestDefinition()
         test_definition.command = command
         test_definition.name = name
 
-        yaml_docker_definition = yaml_test_definition.get("docker")
-        if yaml_docker_definition:
-            test_definition.docker = self._ReadDockerDefinition(yaml_docker_definition)
+        if docker_definition:
+            test_definition.docker = self._ReadDockerDefinition(docker_definition)
+        if package_definition:
+            test_definition.package = self._ReadPackageDefinition(package_definition)
 
         return test_definition
 

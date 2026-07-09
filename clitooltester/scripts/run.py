@@ -26,17 +26,25 @@ def Main():
         help="enable debug output.",
     )
     argument_parser.add_argument(
+        "-i",
+        "--inputs",
+        dest="inputs",
+        action="store",
+        default=None,
+        help="path of the inputs configuration file.",
+    )
+    argument_parser.add_argument(
         "configuration",
         nargs="?",
         action="store",
         metavar="PATH",
         default=None,
-        help="path of the configuration file.",
+        help="path of the test configuration file.",
     )
     options = argument_parser.parse_args()
 
     if not options.configuration:
-        print("Configuration file missing.")
+        print("Test configuration file missing.")
         print("")
         argument_parser.print_help()
         print("")
@@ -46,9 +54,28 @@ def Main():
 
     runner = test_runner.TestRunner()
 
-    runner.ReadConfiguration(options.configuration)
+    test_definition = runner.ReadTestConfiguration(options.configuration)
+    if getattr(test_definition.package, "build"):
+        exit_code = runner.BuildPackage(test_definition)
+        if exit_code != 0:
+            print("[ERROR] build failed")
+            return 1
 
-    return 0
+    result = 0
+    if options.inputs:
+        for input_definition in runner.ReadInputsConfiguration(options.inputs):
+            exit_code = runner.RunTest(test_definition, test_input=input_definition)
+            if exit_code != 0:
+                print("[ERROR] test with input: {input_definition.path:s} failed")
+                result = 1
+
+    else:
+        exit_code = runner.RunTest(test_definition)
+        if exit_code != 0:
+            print("[ERROR] test failed")
+            result = 1
+
+    return result
 
 
 if __name__ == "__main__":
