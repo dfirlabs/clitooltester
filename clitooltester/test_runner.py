@@ -2,6 +2,8 @@
 
 import os
 import pathlib
+import shlex
+import shutil
 import subprocess
 
 from concurrent import futures
@@ -61,15 +63,21 @@ class TestRunner:
           TestResult: test result.
 
         Raises:
+          RuntimeError: if unable to find docker binary.
           ValueError: if the Docker configuration is missing.
         """
         if not test_definition.docker:
             raise ValueError("Invalid test definition - missing Docker configuration")
 
+        docker_path = shutil.which("docker")
+        if not docker_path:
+            raise RuntimeError("Unable to determine location of docker binary")
+
         test_values = {}
 
         test_description = f"{test_definition.name:s}"
-        arguments = ["docker", "run", "--rm"]
+
+        arguments = [docker_path, "run", "--rm"]
 
         if test_input:
             path = pathlib.Path(test_input.path)
@@ -80,14 +88,16 @@ class TestRunner:
 
         docker_definition = test_definition.docker
 
+        arguments.append(docker_definition.tag)
+
         command = self._SubstitutePlaceholders(test_definition.command, test_values)
-        arguments.extend([docker_definition.tag, command])
+        arguments.extend(shlex.split(command))
 
         subprocess_result = subprocess.run(
             arguments,
             capture_output=True,
             check=False,
-            shell=True,
+            shell=False,
             text=True,
         )
         test_result = resources.TestResult()
@@ -122,7 +132,7 @@ class TestRunner:
             test_values["%input%"] = f'"{test_input.path:s}"'
 
         command = self._SubstitutePlaceholders(test_definition.command, test_values)
-        arguments = [command]
+        arguments = shlex.split(command)
 
         subprocess_result = subprocess.run(
             arguments,
@@ -179,10 +189,12 @@ class TestRunner:
         # environment.
         shell = os.environ.get("SHELL", "/bin/bash")
 
+        arguments = [shell, "-l", "-i", "-c"]
+
         command = self._SubstitutePlaceholders(
             test_definition.package.build, test_values
         )
-        arguments = [shell, "-l", "-i", "-c", command]
+        arguments.extend(shlex.split(command))
 
         result = subprocess.run(
             arguments,
@@ -211,6 +223,7 @@ class TestRunner:
           int: exit code from the build command.
 
         Raises:
+          RuntimeError: if unable to find docker binary.
           ValueError: if the Docker configuration is missing.
         """
         if not test_definition.docker:
@@ -219,8 +232,12 @@ class TestRunner:
         if not test_definition.docker.dockerfile:
             raise ValueError("Invalid Docker definition - missing dockerfile")
 
+        docker_path = shutil.which("docker")
+        if not docker_path:
+            raise RuntimeError("Unable to determine location of docker binary")
+
         arguments = [
-            "docker",
+            docker_path,
             "build",
             "-t",
             test_definition.docker.tag,

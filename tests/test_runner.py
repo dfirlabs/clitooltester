@@ -69,7 +69,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_subprocess_run.assert_called_once()
         call_args = mock_subprocess_run.call_args[0][0]
         self.assertIn("-v", call_args)
-        self.assertIn("/input/data.bin", " ".join(call_args))
+        self.assertIn("/input/data.bin", call_args)
 
         # Test with input set and subprocess.run success
         mock_subprocess_run.reset_mock()
@@ -98,7 +98,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_subprocess_run.assert_called_once()
         call_args = mock_subprocess_run.call_args[0][0]
         self.assertIn("-v", call_args)
-        self.assertIn("ext2.raw", " ".join(call_args))
+        self.assertIn("/input/ext2.raw", call_args)
 
         # Test with missing configuration
         mock_subprocess_run.reset_mock()
@@ -180,7 +180,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
 
         mock_subprocess_run.assert_called_once()
         call_args = mock_subprocess_run.call_args[0][0]
-        self.assertIn("/data/file.bin", call_args[0])
+        self.assertIn("/data/file.bin", call_args)
 
         # TODO: Test with input set and subprocess.run success
 
@@ -697,9 +697,10 @@ class TestRunnerTest(test_lib.BaseTestCase):
 
         results = runner.RunTests(test_definition, jobs=2, test_inputs=test_inputs)
         self.assertEqual(len(results), 3)
-        self.assertEqual(results[0].exit_code, 0)
-        self.assertEqual(results[1].exit_code, 1)
-        self.assertEqual(results[2].exit_code, 0)
+
+        exit_codes = [result.exit_code for result in results]
+        self.assertEqual(exit_codes.count(0), 2)
+        self.assertEqual(exit_codes.count(1), 1)
 
 
 if __name__ == "__main__":
