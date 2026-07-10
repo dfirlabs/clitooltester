@@ -19,52 +19,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
 
     # pylint: disable=protected-access
 
-    def testSubstituteInputPlaceholder(self):
-        """Tests the _SubstitutePlaceholders function."""
-        runner = test_runner.TestRunner(quiet=True)
-
-        # Test with %input%
-        command = "%input%"
-        test_values = {"%input%": "/input/test.raw"}
-
-        result = runner._SubstitutePlaceholders(command, test_values)
-        self.assertEqual(result, "/input/test.raw")
-
-        # Test with %package%
-        command = "%package%/scripts/analyze.py"
-        test_values = {"%package%": "/home/user/pkg"}
-
-        result = runner._SubstitutePlaceholders(command, test_values)
-        self.assertEqual(result, "/home/user/pkg/scripts/analyze.py")
-
-        # Test with %input% and %package%
-        command = "%package%/tool %input%"
-        test_values = {"%package%": "/home/user/pkg", "%input%": "/input/data"}
-
-        result = runner._SubstitutePlaceholders(command, test_values)
-        self.assertEqual(result, "/home/user/pkg/tool /input/data")
-
-        # Test without placeholders
-        command = "ls -la"
-        test_values = {}
-
-        result = runner._SubstitutePlaceholders(command, test_values)
-        self.assertEqual(result, "ls -la")
-
-        # Test with unsupported placeholder
-        command = "%input%/other.txt"
-        test_values = {"%in%": "partial"}
-
-        result = runner._SubstitutePlaceholders(command, test_values)
-        self.assertEqual(result, "%input%/other.txt")
-
-        # Test with multiple occurrences of %input%
-        command = "%input% and %input%"
-        test_values = {"%input%": "/path"}
-
-        result = runner._SubstitutePlaceholders(command, test_values)
-        self.assertEqual(result, "/path and /path")
-
     @mock.patch("clitooltester.test_runner.subprocess.run")
     def testRunTestWithDocker(self, mock_subprocess_run):
         """Tests the _RunTestWithDocker function."""
@@ -260,6 +214,52 @@ class TestRunnerTest(test_lib.BaseTestCase):
 
         result = runner._RunTestWithPackage(test_definition)
         self.assertEqual(result, 2)
+
+    def testSubstituteInputPlaceholder(self):
+        """Tests the _SubstitutePlaceholders function."""
+        runner = test_runner.TestRunner(quiet=True)
+
+        # Test with %input%
+        command = "%input%"
+        test_values = {"%input%": "/input/test.raw"}
+
+        result = runner._SubstitutePlaceholders(command, test_values)
+        self.assertEqual(result, "/input/test.raw")
+
+        # Test with %package%
+        command = "%package%/scripts/analyze.py"
+        test_values = {"%package%": "/home/user/pkg"}
+
+        result = runner._SubstitutePlaceholders(command, test_values)
+        self.assertEqual(result, "/home/user/pkg/scripts/analyze.py")
+
+        # Test with %input% and %package%
+        command = "%package%/tool %input%"
+        test_values = {"%package%": "/home/user/pkg", "%input%": "/input/data"}
+
+        result = runner._SubstitutePlaceholders(command, test_values)
+        self.assertEqual(result, "/home/user/pkg/tool /input/data")
+
+        # Test without placeholders
+        command = "ls -la"
+        test_values = {}
+
+        result = runner._SubstitutePlaceholders(command, test_values)
+        self.assertEqual(result, "ls -la")
+
+        # Test with unsupported placeholder
+        command = "%input%/other.txt"
+        test_values = {"%in%": "partial"}
+
+        result = runner._SubstitutePlaceholders(command, test_values)
+        self.assertEqual(result, "%input%/other.txt")
+
+        # Test with multiple occurrences of %input%
+        command = "%input% and %input%"
+        test_values = {"%input%": "/path"}
+
+        result = runner._SubstitutePlaceholders(command, test_values)
+        self.assertEqual(result, "/path and /path")
 
     @mock.patch("clitooltester.test_runner.subprocess.run")
     @mock.patch("clitooltester.test_runner.os.environ")
@@ -583,10 +583,11 @@ class TestRunnerTest(test_lib.BaseTestCase):
         self.assertEqual(result, 0)
 
     @mock.patch("clitooltester.test_runner.subprocess.run")
-    def testRunTestsSequential(self, mock_subprocess_run):
-        """Tests the RunTests function with sequential execution."""
+    def testRunTests(self, mock_subprocess_run):
+        """Tests the RunTests function."""
         runner = test_runner.TestRunner(quiet=True)
 
+        # Test single job without input
         mock_result = mock.MagicMock()
         mock_result.returncode = 0
         mock_result.stdout = ""
@@ -601,35 +602,13 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition.command = "ls"
         test_definition.package = package
 
-        result = runner.RunTests(test_definition, jobs=0)
+        result = runner.RunTests(test_definition, jobs=1)
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0], 0)
 
-    @mock.patch("clitooltester.test_runner.subprocess.run")
-    def testRunTestsParallel(self, mock_subprocess_run):
-        """Tests the RunTests function with parallel execution."""
-        mock_result = mock.MagicMock()
-        mock_result.returncode = 0
-        mock_result.stdout = ""
-        mock_result.stderr = ""
-        mock_subprocess_run.return_value = mock_result
+        # Test single job with input
+        mock_subprocess_run.reset_mock()
 
-        package = resources.PackageDefinition()
-        package.path = "/home/user/pkg"
-
-        test_definition = resources.TestDefinition()
-        test_definition.name = "test"
-        test_definition.command = "ls"
-        test_definition.package = package
-
-        runner = test_runner.TestRunner(quiet=True, jobs=2)
-        result = runner.RunTests(test_definition, jobs=2)
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0], 0)
-
-    @mock.patch("clitooltester.test_runner.subprocess.run")
-    def testRunTestsWithInputs(self, mock_subprocess_run):
-        """Tests the RunTests function with multiple inputs."""
         mock_result = mock.MagicMock()
         mock_result.returncode = 0
         mock_result.stdout = ""
@@ -653,14 +632,39 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_input2.path = "/data/file2.bin"
 
         runner = test_runner.TestRunner(quiet=True)
-        results = runner.RunTests(test_definition, test_inputs=[test_input1, test_input2], jobs=0)
+        results = runner.RunTests(
+            test_definition,
+            jobs=1,
+            test_inputs=[test_input1, test_input2],
+        )
         self.assertEqual(len(results), 2)
         self.assertEqual(results[0], 0)
         self.assertEqual(results[1], 0)
 
-    @mock.patch("clitooltester.test_runner.subprocess.run")
-    def testRunTestsWithMixedResults(self, mock_subprocess_run):
-        """Tests the RunTests function with mixed success/failure results."""
+        # Test with multiple jobs without input
+        mock_subprocess_run.reset_mock()
+
+        mock_result = mock.MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = ""
+        mock_result.stderr = ""
+        mock_subprocess_run.return_value = mock_result
+
+        package = resources.PackageDefinition()
+        package.path = "/home/user/pkg"
+
+        test_definition = resources.TestDefinition()
+        test_definition.name = "test"
+        test_definition.command = "ls"
+        test_definition.package = package
+
+        result = runner.RunTests(test_definition, jobs=2)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], 0)
+
+        # Test with multiple jobs with input
+        mock_subprocess_run.reset_mock()
+
         mock_result_success = mock.MagicMock()
         mock_result_success.returncode = 0
         mock_result_success.stdout = ""
@@ -671,7 +675,11 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_result_failure.stdout = ""
         mock_result_failure.stderr = ""
 
-        mock_subprocess_run.side_effect = [mock_result_success, mock_result_failure, mock_result_success]
+        mock_subprocess_run.side_effect = [
+            mock_result_success,
+            mock_result_failure,
+            mock_result_success,
+        ]
 
         package = resources.PackageDefinition()
         package.path = "/home/user/pkg"
@@ -688,8 +696,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
             test_input.path = f"/data/file{i}.bin"
             test_inputs.append(test_input)
 
-        runner = test_runner.TestRunner(quiet=True, jobs=2)
-        results = runner.RunTests(test_definition, test_inputs=test_inputs, jobs=2)
+        results = runner.RunTests(test_definition, jobs=2, test_inputs=test_inputs)
         self.assertEqual(len(results), 3)
         self.assertEqual(results.count(0), 2)
         self.assertEqual(results.count(1), 1)

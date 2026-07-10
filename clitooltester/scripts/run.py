@@ -37,8 +37,8 @@ def Main():
         dest="jobs",
         action="store",
         type=int,
-        default=0,
-        help="number of parallel jobs (0 = sequential).",
+        default=1,
+        help="number of parallel jobs, where 1 represent sequential.",
     )
     argument_parser.add_argument(
         "configuration",
@@ -57,10 +57,13 @@ def Main():
         print("")
         return 1
 
-    runner = test_runner.TestRunner(
-        verbose=options.verbose, jobs=options.jobs
-    )
+    if options.jobs <= 0:
+        print(f"Unsupported number of jobs: {options.jobs:d}")
+        return 1
 
+    runner = test_runner.TestRunner(
+        verbose=options.verbose,
+    )
     try:
         test_definition = runner.ReadTestConfiguration(options.configuration)
     except (FileNotFoundError, IOError, RuntimeError) as exception:
@@ -81,15 +84,15 @@ def Main():
             return 1
 
     if not options.inputs:
-        results = runner.RunTests(test_definition, jobs=options.jobs)
+        test_results = runner.RunTests(test_definition, jobs=options.jobs)
     else:
         test_inputs = runner.ReadInputsConfiguration(options.inputs)
-        results = runner.RunTests(
-            test_definition, test_inputs=test_inputs, jobs=options.jobs
+        test_results = runner.RunTests(
+            test_definition, jobs=options.jobs, test_inputs=test_inputs
         )
 
-    number_of_tests = len(results)
-    number_of_failed_tests = sum(1 for r in results if r != 0)
+    number_of_tests = len(test_results)
+    number_of_failed_tests = sum(1 for result in test_results if result != 0)
 
     print("\nTest results.\n")
 
