@@ -33,6 +33,14 @@ def Main():
         help="enable verbose output.",
     )
     argument_parser.add_argument(
+        "-j",
+        dest="jobs",
+        action="store",
+        type=int,
+        default=1,
+        help="number of parallel jobs, where 1 represent sequential.",
+    )
+    argument_parser.add_argument(
         "configuration",
         nargs="?",
         action="store",
@@ -49,8 +57,13 @@ def Main():
         print("")
         return 1
 
-    runner = test_runner.TestRunner(verbose=options.verbose)
+    if options.jobs <= 0:
+        print(f"Unsupported number of jobs: {options.jobs:d}")
+        return 1
 
+    runner = test_runner.TestRunner(
+        verbose=options.verbose,
+    )
     try:
         test_definition = runner.ReadTestConfiguration(options.configuration)
     except (FileNotFoundError, IOError, RuntimeError) as exception:
@@ -70,20 +83,16 @@ def Main():
             print("\033[31mERROR: docker build failed\033[0m")
             return 1
 
-    number_of_tests = 0
-    number_of_failed_tests = 0
-
     if not options.inputs:
-        if runner.RunTest(test_definition) != 0:
-            number_of_failed_tests += 1
-
-        number_of_tests += 1
+        test_results = runner.RunTests(test_definition, jobs=options.jobs)
     else:
-        for input_definition in runner.ReadInputsConfiguration(options.inputs):
-            if runner.RunTest(test_definition, test_input=input_definition) != 0:
-                number_of_failed_tests += 1
+        test_inputs = runner.ReadInputsConfiguration(options.inputs)
+        test_results = runner.RunTests(
+            test_definition, jobs=options.jobs, test_inputs=test_inputs
+        )
 
-            number_of_tests += 1
+    number_of_tests = len(test_results)
+    number_of_failed_tests = sum(1 for result in test_results if result.exit_code != 0)
 
     print("\nTest results.\n")
 

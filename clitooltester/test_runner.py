@@ -4,6 +4,9 @@ import os
 import pathlib
 import subprocess
 
+from concurrent import futures
+
+from clitooltester import resources
 from clitooltester import yaml_definitions_file
 
 
@@ -23,6 +26,30 @@ class TestRunner:
         self._quiet = quiet
         self._verbose = verbose
 
+    def _PrintTestResult(self, test_result):
+        """Prints a test result.
+
+        Args:
+          test_result (TestResult): test result.
+        """
+        if self._quiet:
+            return
+
+        print(test_result.description, end="")
+
+        padding_length = max(1, 72 - len(test_result.description))
+        print(" " * padding_length, end="")
+
+        if test_result.exit_code == 0:
+            print("\033[32mok\033[0m")
+        else:
+            print("\033[31mFAILED\033[0m")
+
+            if self._verbose and test_result.stdout:
+                print(test_result.stdout)
+            if self._verbose and test_result.stderr:
+                print(test_result.stderr)
+
     def _RunTestWithDocker(self, test_definition, test_input=None):
         """Runs a test with Docker.
 
@@ -31,7 +58,7 @@ class TestRunner:
           test_input (Optional[InputDefinition]): input definition.
 
         Returns:
-          int: exit code from the test command.
+          TestResult: test result.
 
         Raises:
           ValueError: if the Docker configuration is missing.
@@ -56,31 +83,20 @@ class TestRunner:
         command = self._SubstitutePlaceholders(test_definition.command, test_values)
         arguments.extend([docker_definition.tag, command])
 
-        if not self._quiet:
-            print(test_description, end="")
-
-        result = subprocess.run(
+        subprocess_result = subprocess.run(
             arguments,
             capture_output=True,
             check=False,
             shell=True,
             text=True,
         )
-        if not self._quiet:
-            padding_length = max(1, 72 - len(test_description))
-            print(" " * padding_length, end="")
+        test_result = resources.TestResult()
+        test_result.description = test_description
+        test_result.exit_code = subprocess_result.returncode
+        test_result.stderr = subprocess_result.stderr
+        test_result.stdout = subprocess_result.stdout
 
-            if result.returncode == 0:
-                print("\033[32mok\033[0m")
-            else:
-                print("\033[31mFAILED\033[0m")
-
-                if self._verbose and result.stdout:
-                    print(result.stdout)
-                if self._verbose and result.stderr:
-                    print(result.stderr)
-
-        return result.returncode
+        return test_result
 
     def _RunTestWithPackage(self, test_definition, test_input=None):
         """Runs a test.
@@ -90,7 +106,7 @@ class TestRunner:
           test_input (Optional[InputDefinition]): input definition.
 
         Returns:
-          int: exit code from the test command.
+          TestResult: test result.
 
         Raises:
           ValueError: if the package configuration is missing.
@@ -108,31 +124,20 @@ class TestRunner:
         command = self._SubstitutePlaceholders(test_definition.command, test_values)
         arguments = [command]
 
-        if not self._quiet:
-            print(test_description, end="")
-
-        result = subprocess.run(
+        subprocess_result = subprocess.run(
             arguments,
             capture_output=True,
             check=False,
             shell=True,
             text=True,
         )
-        if not self._quiet:
-            padding_length = max(1, 72 - len(test_description))
-            print(" " * padding_length, end="")
+        test_result = resources.TestResult()
+        test_result.description = test_description
+        test_result.exit_code = subprocess_result.returncode
+        test_result.stderr = subprocess_result.stderr
+        test_result.stdout = subprocess_result.stdout
 
-            if result.returncode == 0:
-                print("\033[32mok\033[0m")
-            else:
-                print("\033[31mFAILED\033[0m")
-
-                if self._verbose and result.stdout:
-                    print(result.stdout)
-                if self._verbose and result.stderr:
-                    print(result.stderr)
-
-        return result.returncode
+        return test_result
 
     def _SubstitutePlaceholders(self, command, test_values):
         """Substitutes placeholders in a command.
@@ -160,7 +165,7 @@ class TestRunner:
           test_definition (TestDefinition): test definition with Docker configuration.
 
         Returns:
-          int: exit code from the test command.
+          int: exit code from the build command.
 
         Raises:
           ValueError: if the package configuration is missing.
@@ -203,7 +208,7 @@ class TestRunner:
           test_definition (TestDefinition): test definition with Docker configuration.
 
         Returns:
-          int: exit code from the test command.
+          int: exit code from the build command.
 
         Raises:
           ValueError: if the Docker configuration is missing.
@@ -282,7 +287,7 @@ class TestRunner:
           test_input (Optional[InputDefinition]): input definition.
 
         Returns:
-          int: exit code from the test command.
+          TestResult: test result.
 
         Raises:
           ValueError: if the package configuration is missing.
@@ -291,3 +296,50 @@ class TestRunner:
             return self._RunTestWithDocker(test_definition, test_input=test_input)
 
         return self._RunTestWithPackage(test_definition, test_input=test_input)
+
+    def RunTests(self, test_definition, jobs=1, test_inputs=None):
+        """Runs tests and collects results.
+
+        Args:
+          test_definition (TestDefinition): test definition.
+          jobs (Optional[int]): number of parallel jobs to run, where 1 is sequential.
+          test_inputs (Optional[list[InputDefinition]]): input definitions.
+
+        Returns:
+          list[int]: list of exit codes from each test.
+        """
+        if test_inputs:
+            tasks = [(test_definition, test_input) for test_input in test_inputs]
+        else:
+            tasks = [(test_definition, None)]
+
+        if jobs <= 1:
+            results = []
+            for task in tasks:
+                test_runner = TestRunner(quiet=self._quiet, verbose=self._verbose)
+                test_result = test_runner.RunTest(*task)
+
+                results.append(test_result)
+
+                self._PrintTestResult(test_result)
+
+            return results
+
+        results = [None] * len(tasks)
+
+        def _run_job(index, task):
+            test_runner = TestRunner(quiet=self._quiet, verbose=self._verbose)
+            return index, test_runner.RunTest(*task)
+
+        with futures.ThreadPoolExecutor(max_workers=jobs) as executor:
+            future_instances = {
+                executor.submit(_run_job, index, task): (index, task)
+                for index, task in enumerate(tasks)
+            }
+            for future in futures.as_completed(future_instances):
+                index, test_result = future.result()
+                results[index] = test_result
+
+                self._PrintTestResult(test_result)
+
+        return results

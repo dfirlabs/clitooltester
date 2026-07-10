@@ -103,3 +103,22 @@ class TestDefinition:
         self.docker = None
         self.name = None
         self.package = None
+
+
+class TestResult:
+    """Test result.
+
+    Attributes:
+      description (str): description.
+      exit_code (int): exit code from the test command.
+      stderr (str): standard error from the test command.
+      stdout (str): standard output from the test command.
+    """
+
+    def __init__(self):
+        """Initializes a test result."""
+        super().__init__()
+        self.description = None
+        self.exit_code = 0
+        self.stderr = None
+        self.stdout = None

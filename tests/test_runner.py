@@ -19,6 +19,202 @@ class TestRunnerTest(test_lib.BaseTestCase):
 
     # pylint: disable=protected-access
 
+    @mock.patch("clitooltester.test_runner.subprocess.run")
+    def testRunTestWithDocker(self, mock_subprocess_run):
+        """Tests the _RunTestWithDocker function."""
+        runner = test_runner.TestRunner(quiet=True)
+
+        # Test with subprocess.run success
+        mock_result = mock.MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = ""
+        mock_result.stderr = ""
+        mock_subprocess_run.return_value = mock_result
+
+        docker = resources.DockerDefinition()
+        docker.tag = "myimage:latest"
+
+        test_definition = resources.TestDefinition()
+        test_definition.name = "my_test"
+        test_definition.command = "ls /input"
+        test_definition.docker = docker
+
+        test_result = runner._RunTestWithDocker(test_definition)
+        self.assertEqual(test_result.exit_code, 0)
+
+        # Test with input and subprocess.run success
+        mock_subprocess_run.reset_mock()
+
+        mock_result = mock.MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = ""
+        mock_result.stderr = ""
+        mock_subprocess_run.return_value = mock_result
+
+        docker = resources.DockerDefinition()
+        docker.tag = "myimage:latest"
+
+        test_definition = resources.TestDefinition()
+        test_definition.name = "my_test"
+        test_definition.command = "ls %input%"
+        test_definition.docker = docker
+
+        test_input = resources.InputDefinition()
+        test_input.name = "test_input"
+        test_input.path = "/some/path/data.bin"
+
+        test_result = runner._RunTestWithDocker(test_definition, test_input=test_input)
+        self.assertEqual(test_result.exit_code, 0)
+
+        mock_subprocess_run.assert_called_once()
+        call_args = mock_subprocess_run.call_args[0][0]
+        self.assertIn("-v", call_args)
+        self.assertIn("/input/data.bin", " ".join(call_args))
+
+        # Test with input set and subprocess.run success
+        mock_subprocess_run.reset_mock()
+
+        mock_result = mock.MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = ""
+        mock_result.stderr = ""
+        mock_subprocess_run.return_value = mock_result
+
+        docker = resources.DockerDefinition()
+        docker.tag = "myimage:latest"
+
+        test_definition = resources.TestDefinition()
+        test_definition.name = "my_test"
+        test_definition.command = "ls %input%"
+        test_definition.docker = docker
+
+        test_input = resources.InputDefinition()
+        test_input.name = "ext/ext2"
+        test_input.path = "/mnt/hdd/test_data/ext/ext2.raw"
+
+        test_result = runner._RunTestWithDocker(test_definition, test_input=test_input)
+        self.assertEqual(test_result.exit_code, 0)
+
+        mock_subprocess_run.assert_called_once()
+        call_args = mock_subprocess_run.call_args[0][0]
+        self.assertIn("-v", call_args)
+        self.assertIn("ext2.raw", " ".join(call_args))
+
+        # Test with missing configuration
+        mock_subprocess_run.reset_mock()
+
+        test_definition = resources.TestDefinition()
+        test_definition.name = "test"
+        test_definition.command = "mycommand"
+        test_definition.docker = None
+
+        with self.assertRaises(ValueError):
+            runner._RunTestWithDocker(test_definition)
+
+        # Test with subprocess.run failure
+        mock_subprocess_run.reset_mock()
+
+        mock_result = mock.MagicMock()
+        mock_result.returncode = 1
+        mock_result.stdout = "stdout output\n"
+        mock_result.stderr = "stderr output\n"
+        mock_subprocess_run.return_value = mock_result
+
+        docker = resources.DockerDefinition()
+        docker.tag = "myimage:latest"
+
+        test_definition = resources.TestDefinition()
+        test_definition.name = "my_test"
+        test_definition.command = "ls /input"
+        test_definition.docker = docker
+
+        test_result = runner._RunTestWithDocker(test_definition)
+        self.assertEqual(test_result.exit_code, 1)
+
+    @mock.patch("clitooltester.test_runner.subprocess.run")
+    def testRunTestWithPackageSuccess(self, mock_subprocess_run):
+        """Tests the _RunTestWithPackage function."""
+        runner = test_runner.TestRunner(quiet=True)
+
+        # Test with subprocess.run success
+        mock_result = mock.MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = ""
+        mock_result.stderr = ""
+        mock_subprocess_run.return_value = mock_result
+
+        package = resources.PackageDefinition()
+        package.path = "/home/user/pkg"
+
+        test_definition = resources.TestDefinition()
+        test_definition.name = "my_test"
+        test_definition.command = "%package%/tool"
+        test_definition.package = package
+
+        test_result = runner._RunTestWithPackage(test_definition)
+        self.assertEqual(test_result.exit_code, 0)
+
+        # Test with input and subprocess.run success
+        mock_subprocess_run.reset_mock()
+
+        mock_result = mock.MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = ""
+        mock_result.stderr = ""
+        mock_subprocess_run.return_value = mock_result
+
+        package = resources.PackageDefinition()
+        package.path = "/home/user/pkg"
+
+        test_definition = resources.TestDefinition()
+        test_definition.name = "my_test"
+        test_definition.command = "%package%/tool %input%"
+        test_definition.package = package
+
+        test_input = resources.InputDefinition()
+        test_input.name = "data"
+        test_input.path = "/data/file.bin"
+
+        test_result = runner._RunTestWithPackage(test_definition, test_input=test_input)
+        self.assertEqual(test_result.exit_code, 0)
+
+        mock_subprocess_run.assert_called_once()
+        call_args = mock_subprocess_run.call_args[0][0]
+        self.assertIn("/data/file.bin", call_args[0])
+
+        # TODO: Test with input set and subprocess.run success
+
+        # Test with missing configuration
+        mock_subprocess_run.reset_mock()
+
+        test_definition = resources.TestDefinition()
+        test_definition.name = "test"
+        test_definition.command = "mycommand"
+        test_definition.package = None
+
+        with self.assertRaises(ValueError):
+            runner._RunTestWithPackage(test_definition)
+
+        # Test with subprocess.run failure
+        mock_subprocess_run.reset_mock()
+
+        mock_result = mock.MagicMock()
+        mock_result.returncode = 1
+        mock_result.stdout = "stdout output\n"
+        mock_result.stderr = "stderr output\n"
+        mock_subprocess_run.return_value = mock_result
+
+        package = resources.PackageDefinition()
+        package.path = "/home/user/pkg"
+
+        test_definition = resources.TestDefinition()
+        test_definition.name = "my_test"
+        test_definition.command = "command"
+        test_definition.package = package
+
+        test_result = runner._RunTestWithPackage(test_definition)
+        self.assertEqual(test_result.exit_code, 1)
+
     def testSubstituteInputPlaceholder(self):
         """Tests the _SubstitutePlaceholders function."""
         runner = test_runner.TestRunner(quiet=True)
@@ -64,202 +260,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
 
         result = runner._SubstitutePlaceholders(command, test_values)
         self.assertEqual(result, "/path and /path")
-
-    @mock.patch("clitooltester.test_runner.subprocess.run")
-    def testRunTestWithDocker(self, mock_subprocess_run):
-        """Tests the _RunTestWithDocker function."""
-        runner = test_runner.TestRunner(quiet=True)
-
-        # Test with subprocess.run success
-        mock_result = mock.MagicMock()
-        mock_result.returncode = 0
-        mock_result.stdout = ""
-        mock_result.stderr = ""
-        mock_subprocess_run.return_value = mock_result
-
-        docker = resources.DockerDefinition()
-        docker.tag = "myimage:latest"
-
-        test_definition = resources.TestDefinition()
-        test_definition.name = "my_test"
-        test_definition.command = "ls /input"
-        test_definition.docker = docker
-
-        result = runner._RunTestWithDocker(test_definition)
-        self.assertEqual(result, 0)
-
-        # Test with input and subprocess.run success
-        mock_subprocess_run.reset_mock()
-
-        mock_result = mock.MagicMock()
-        mock_result.returncode = 0
-        mock_result.stdout = ""
-        mock_result.stderr = ""
-        mock_subprocess_run.return_value = mock_result
-
-        docker = resources.DockerDefinition()
-        docker.tag = "myimage:latest"
-
-        test_definition = resources.TestDefinition()
-        test_definition.name = "my_test"
-        test_definition.command = "ls %input%"
-        test_definition.docker = docker
-
-        test_input = resources.InputDefinition()
-        test_input.name = "test_input"
-        test_input.path = "/some/path/data.bin"
-
-        result = runner._RunTestWithDocker(test_definition, test_input=test_input)
-        self.assertEqual(result, 0)
-
-        mock_subprocess_run.assert_called_once()
-        call_args = mock_subprocess_run.call_args[0][0]
-        self.assertIn("-v", call_args)
-        self.assertIn("/input/data.bin", " ".join(call_args))
-
-        # Test with input set and subprocess.run success
-        mock_subprocess_run.reset_mock()
-
-        mock_result = mock.MagicMock()
-        mock_result.returncode = 0
-        mock_result.stdout = ""
-        mock_result.stderr = ""
-        mock_subprocess_run.return_value = mock_result
-
-        docker = resources.DockerDefinition()
-        docker.tag = "myimage:latest"
-
-        test_definition = resources.TestDefinition()
-        test_definition.name = "my_test"
-        test_definition.command = "ls %input%"
-        test_definition.docker = docker
-
-        test_input = resources.InputDefinition()
-        test_input.name = "ext/ext2"
-        test_input.path = "/mnt/hdd/test_data/ext/ext2.raw"
-
-        result = runner._RunTestWithDocker(test_definition, test_input=test_input)
-        self.assertEqual(result, 0)
-
-        mock_subprocess_run.assert_called_once()
-        call_args = mock_subprocess_run.call_args[0][0]
-        self.assertIn("-v", call_args)
-        self.assertIn("ext2.raw", " ".join(call_args))
-
-        # Test with missing configuration
-        mock_subprocess_run.reset_mock()
-
-        test_definition = resources.TestDefinition()
-        test_definition.name = "test"
-        test_definition.command = "mycommand"
-        test_definition.docker = None
-
-        with self.assertRaises(ValueError):
-            runner._RunTestWithDocker(test_definition)
-
-        # Test with subprocess.run failure
-        mock_subprocess_run.reset_mock()
-
-        mock_result = mock.MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = "stdout output\n"
-        mock_result.stderr = "stderr output\n"
-        mock_subprocess_run.return_value = mock_result
-
-        docker = resources.DockerDefinition()
-        docker.tag = "myimage:latest"
-
-        test_definition = resources.TestDefinition()
-        test_definition.name = "my_test"
-        test_definition.command = "ls /input"
-        test_definition.docker = docker
-
-        result = runner._RunTestWithDocker(test_definition)
-        self.assertEqual(result, 1)
-
-    @mock.patch("clitooltester.test_runner.subprocess.run")
-    def testRunTestWithPackageSuccess(self, mock_subprocess_run):
-        """Tests the _RunTestWithPackage function."""
-        runner = test_runner.TestRunner(quiet=True)
-
-        # Test with subprocess.run success
-        mock_result = mock.MagicMock()
-        mock_result.returncode = 0
-        mock_result.stdout = ""
-        mock_result.stderr = ""
-        mock_subprocess_run.return_value = mock_result
-
-        package = resources.PackageDefinition()
-        package.path = "/home/user/pkg"
-
-        test_definition = resources.TestDefinition()
-        test_definition.name = "my_test"
-        test_definition.command = "%package%/tool"
-        test_definition.package = package
-
-        result = runner._RunTestWithPackage(test_definition)
-        self.assertEqual(result, 0)
-
-        # Test with input and subprocess.run success
-        mock_subprocess_run.reset_mock()
-
-        mock_result = mock.MagicMock()
-        mock_result.returncode = 0
-        mock_result.stdout = ""
-        mock_result.stderr = ""
-        mock_subprocess_run.return_value = mock_result
-
-        package = resources.PackageDefinition()
-        package.path = "/home/user/pkg"
-
-        test_definition = resources.TestDefinition()
-        test_definition.name = "my_test"
-        test_definition.command = "%package%/tool %input%"
-        test_definition.package = package
-
-        test_input = resources.InputDefinition()
-        test_input.name = "data"
-        test_input.path = "/data/file.bin"
-
-        result = runner._RunTestWithPackage(test_definition, test_input=test_input)
-        self.assertEqual(result, 0)
-
-        mock_subprocess_run.assert_called_once()
-        call_args = mock_subprocess_run.call_args[0][0]
-        self.assertIn("/data/file.bin", call_args[0])
-
-        # TODO: Test with input set and subprocess.run success
-
-        # Test with missing configuration
-        mock_subprocess_run.reset_mock()
-
-        test_definition = resources.TestDefinition()
-        test_definition.name = "test"
-        test_definition.command = "mycommand"
-        test_definition.package = None
-
-        with self.assertRaises(ValueError):
-            runner._RunTestWithPackage(test_definition)
-
-        # Test with subprocess.run failure
-        mock_subprocess_run.reset_mock()
-
-        mock_result = mock.MagicMock()
-        mock_result.returncode = 2
-        mock_result.stdout = "stdout output\n"
-        mock_result.stderr = "stderr output\n"
-        mock_subprocess_run.return_value = mock_result
-
-        package = resources.PackageDefinition()
-        package.path = "/home/user/pkg"
-
-        test_definition = resources.TestDefinition()
-        test_definition.name = "my_test"
-        test_definition.command = "command"
-        test_definition.package = package
-
-        result = runner._RunTestWithPackage(test_definition)
-        self.assertEqual(result, 2)
 
     @mock.patch("clitooltester.test_runner.subprocess.run")
     @mock.patch("clitooltester.test_runner.os.environ")
@@ -511,8 +511,8 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition.command = "ls"
         test_definition.docker = docker
 
-        result = runner.RunTest(test_definition)
-        self.assertEqual(result, 0)
+        test_result = runner.RunTest(test_definition)
+        self.assertEqual(test_result.exit_code, 0)
 
         # Test with Docker configuration, input and and subprocess.run success
         mock_subprocess_run.reset_mock()
@@ -535,8 +535,8 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_input.name = "data"
         test_input.path = "/data/file.bin"
 
-        result = runner.RunTest(test_definition, test_input=test_input)
-        self.assertEqual(result, 0)
+        test_result = runner.RunTest(test_definition, test_input=test_input)
+        self.assertEqual(test_result.exit_code, 0)
 
         # Test with package configuration and subprocess.run success
         mock_subprocess_run.reset_mock()
@@ -555,8 +555,8 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition.command = "ls"
         test_definition.package = package
 
-        result = runner.RunTest(test_definition)
-        self.assertEqual(result, 0)
+        test_result = runner.RunTest(test_definition)
+        self.assertEqual(test_result.exit_code, 0)
 
         # Test with package configuration, input and subprocess.run success
         mock_subprocess_run.reset_mock()
@@ -579,8 +579,127 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_input.name = "data"
         test_input.path = "/data/file.bin"
 
-        result = runner.RunTest(test_definition, test_input=test_input)
-        self.assertEqual(result, 0)
+        test_result = runner.RunTest(test_definition, test_input=test_input)
+        self.assertEqual(test_result.exit_code, 0)
+
+    @mock.patch("clitooltester.test_runner.subprocess.run")
+    def testRunTests(self, mock_subprocess_run):
+        """Tests the RunTests function."""
+        runner = test_runner.TestRunner(quiet=True)
+
+        # Test single job without input
+        mock_result = mock.MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = ""
+        mock_result.stderr = ""
+        mock_subprocess_run.return_value = mock_result
+
+        package = resources.PackageDefinition()
+        package.path = "/home/user/pkg"
+
+        test_definition = resources.TestDefinition()
+        test_definition.name = "test"
+        test_definition.command = "ls"
+        test_definition.package = package
+
+        results = runner.RunTests(test_definition, jobs=1)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].exit_code, 0)
+
+        # Test single job with input
+        mock_subprocess_run.reset_mock()
+
+        mock_result = mock.MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = ""
+        mock_result.stderr = ""
+        mock_subprocess_run.return_value = mock_result
+
+        package = resources.PackageDefinition()
+        package.path = "/home/user/pkg"
+
+        test_definition = resources.TestDefinition()
+        test_definition.name = "test"
+        test_definition.command = "ls %input%"
+        test_definition.package = package
+
+        test_input1 = resources.InputDefinition()
+        test_input1.name = "input1"
+        test_input1.path = "/data/file1.bin"
+
+        test_input2 = resources.InputDefinition()
+        test_input2.name = "input2"
+        test_input2.path = "/data/file2.bin"
+
+        runner = test_runner.TestRunner(quiet=True)
+        results = runner.RunTests(
+            test_definition,
+            jobs=1,
+            test_inputs=[test_input1, test_input2],
+        )
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0].exit_code, 0)
+        self.assertEqual(results[1].exit_code, 0)
+
+        # Test with multiple jobs without input
+        mock_subprocess_run.reset_mock()
+
+        mock_result = mock.MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = ""
+        mock_result.stderr = ""
+        mock_subprocess_run.return_value = mock_result
+
+        package = resources.PackageDefinition()
+        package.path = "/home/user/pkg"
+
+        test_definition = resources.TestDefinition()
+        test_definition.name = "test"
+        test_definition.command = "ls"
+        test_definition.package = package
+
+        results = runner.RunTests(test_definition, jobs=2)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].exit_code, 0)
+
+        # Test with multiple jobs with input
+        mock_subprocess_run.reset_mock()
+
+        mock_result_success = mock.MagicMock()
+        mock_result_success.returncode = 0
+        mock_result_success.stdout = ""
+        mock_result_success.stderr = ""
+
+        mock_result_failure = mock.MagicMock()
+        mock_result_failure.returncode = 1
+        mock_result_failure.stdout = ""
+        mock_result_failure.stderr = ""
+
+        mock_subprocess_run.side_effect = [
+            mock_result_success,
+            mock_result_failure,
+            mock_result_success,
+        ]
+        package = resources.PackageDefinition()
+        package.path = "/home/user/pkg"
+
+        test_definition = resources.TestDefinition()
+        test_definition.name = "test"
+        test_definition.command = "ls %input%"
+        test_definition.package = package
+
+        test_inputs = []
+        for index in range(3):
+            test_input = resources.InputDefinition()
+            test_input.name = f"input{index:d}"
+            test_input.path = f"/data/file{index:d}.bin"
+            test_inputs.append(test_input)
+
+        results = runner.RunTests(test_definition, jobs=2, test_inputs=test_inputs)
+        self.assertEqual(len(results), 3)
+        self.assertEqual(results[0].exit_code, 0)
+        self.assertEqual(results[1].exit_code, 1)
+        self.assertEqual(results[2].exit_code, 0)
 
 
 if __name__ == "__main__":
