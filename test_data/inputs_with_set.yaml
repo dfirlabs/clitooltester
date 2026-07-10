@@ -6,3 +6,5 @@ set:
   elements:
   - name: ext2
     path: ext2.raw
+    parameters:
+      partition_offset: 0

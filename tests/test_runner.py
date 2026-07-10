@@ -338,9 +338,12 @@ class TestRunnerTest(test_lib.BaseTestCase):
         self.assertEqual(result, 1)
 
     @mock.patch("clitooltester.test_runner.subprocess.run")
-    def testBuildDocker(self, mock_subprocess_run):
+    @mock.patch("clitooltester.test_runner.shutil.which")
+    def testBuildDocker(self, mock_shutil_which, mock_subprocess_run):
         """Tests the BuildDockerImage function."""
         runner = test_runner.TestRunner(quiet=True)
+
+        mock_shutil_which.return_value = "/usr/bin/docker"
 
         # Test with subprocess.run success
         mock_result = mock.MagicMock()
@@ -494,9 +497,12 @@ class TestRunnerTest(test_lib.BaseTestCase):
                 os.remove(test_file_path)
 
     @mock.patch("clitooltester.test_runner.subprocess.run")
-    def testRunTest(self, mock_subprocess_run):
+    @mock.patch("clitooltester.test_runner.shutil.which")
+    def testRunTest(self, mock_shutil_which, mock_subprocess_run):
         """Tests the RunTest function."""
         runner = test_runner.TestRunner(quiet=True)
+
+        mock_shutil_which.return_value = "/usr/bin/docker"
 
         # Test with Docker configuration and subprocess.run success
         mock_result = mock.MagicMock()

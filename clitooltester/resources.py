@@ -40,6 +40,7 @@ class InputDefinition:
 
     Attributes:
       name (str): name that uniquely identifies the input.
+      paramters (dict[str, str]): parameters accompanying the input.
       path (str): location of the input.
     """
 
@@ -47,6 +48,7 @@ class InputDefinition:
         """Initializes an input definition."""
         super().__init__()
         self.name = None
+        self.parameters = {}
         self.path = None
 
 

@@ -14,6 +14,8 @@ class YAMLInputsDefinitionsFile:
 
     name: ext2
     path: test_data/ext2.raw
+    parameters:
+      partition_offset: 0
 
     or a set of inputs:
 
@@ -23,14 +25,17 @@ class YAMLInputsDefinitionsFile:
       elements:
         name: ext2
         path: ext2.raw
+        parameters:
+          partition_offset: 0
 
     Where:
     * name, that uniquely identifies the input;
+    * parameters, optional parameters.
     * path, location of the input;
     * set, input set.
     """
 
-    _SUPPORTED_KEYS = frozenset(["name", "path", "set"])
+    _SUPPORTED_KEYS = frozenset(["name", "parameters", "path", "set"])
 
     def _ReadInputDefinition(self, yaml_input_definition):
         """Reads an input definition from a dictionary.
@@ -67,6 +72,7 @@ class YAMLInputsDefinitionsFile:
 
             input_definition = resources.InputDefinition()
             input_definition.name = name
+            input_definition.parameters = yaml_input_definition.get("parameters")
             input_definition.path = path
 
         return input_definition
@@ -120,6 +126,7 @@ class YAMLInputsDefinitionsFile:
 
             input_definition = resources.InputDefinition()
             input_definition.name = name
+            input_definition.parameters = element.get("parameters")
             input_definition.path = path
 
             input_set_definition.elements.append(input_definition)
