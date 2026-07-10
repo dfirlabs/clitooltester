@@ -1,6 +1,7 @@
 # clitooltester test.
 ---
-name: "dfimagetools_recursive_hasher_docker"
+name: dfimagetools_recursive_hasher_docker
+description: Run dfimagetools recursive_hasher.py with input
 command: "recursive_hasher.py %input%"
 docker:
-  tag: "clitooltestester:dfimagetools"
+  tag: clitooltestester:dfimagetools

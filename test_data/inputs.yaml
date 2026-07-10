@@ -1,6 +1,7 @@
 # clitooltester inputs.
 ---
 name: ext2
+description: ext2 file system storage media image
 path: test_data/ext2.raw
 parameters:
   partition_offset: 0
