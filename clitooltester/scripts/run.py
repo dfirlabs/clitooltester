@@ -17,20 +17,20 @@ def Main():
         description="Runs command line tool tests."
     )
     argument_parser.add_argument(
-        "-d",
-        "--debug",
-        dest="debug",
-        action="store_true",
-        default=False,
-        help="enable debug output.",
-    )
-    argument_parser.add_argument(
         "-i",
         "--inputs",
         dest="inputs",
         action="store",
         default=None,
         help="path of the inputs configuration file.",
+    )
+    argument_parser.add_argument(
+        "-v",
+        "--verbose",
+        dest="verbose",
+        action="store_true",
+        default=False,
+        help="enable verbose output.",
     )
     argument_parser.add_argument(
         "configuration",
@@ -49,7 +49,7 @@ def Main():
         print("")
         return 1
 
-    runner = test_runner.TestRunner()
+    runner = test_runner.TestRunner(verbose=options.verbose)
 
     try:
         test_definition = runner.ReadTestConfiguration(options.configuration)
