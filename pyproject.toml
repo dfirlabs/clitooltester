@@ -10,7 +10,7 @@ maintainers = [
     { name = "Joachim Metz", email = "joachim.metz@gmail.com" },
 ]
 license = "Apache-2.0"
-license-files = ["LICENSE"]
+license-files = ["ACKNOWLEDGEMENTS", "AUTHORS", "LICENSE"]
 readme = "README.md"
 classifiers = [
     "Development Status :: 3 - Alpha",
