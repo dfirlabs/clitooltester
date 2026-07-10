@@ -39,8 +39,8 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition.command = "ls /input"
         test_definition.docker = docker
 
-        result = runner._RunTestWithDocker(test_definition)
-        self.assertEqual(result, 0)
+        test_result = runner._RunTestWithDocker(test_definition)
+        self.assertEqual(test_result.exit_code, 0)
 
         # Test with input and subprocess.run success
         mock_subprocess_run.reset_mock()
@@ -63,8 +63,8 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_input.name = "test_input"
         test_input.path = "/some/path/data.bin"
 
-        result = runner._RunTestWithDocker(test_definition, test_input=test_input)
-        self.assertEqual(result, 0)
+        test_result = runner._RunTestWithDocker(test_definition, test_input=test_input)
+        self.assertEqual(test_result.exit_code, 0)
 
         mock_subprocess_run.assert_called_once()
         call_args = mock_subprocess_run.call_args[0][0]
@@ -92,8 +92,8 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_input.name = "ext/ext2"
         test_input.path = "/mnt/hdd/test_data/ext/ext2.raw"
 
-        result = runner._RunTestWithDocker(test_definition, test_input=test_input)
-        self.assertEqual(result, 0)
+        test_result = runner._RunTestWithDocker(test_definition, test_input=test_input)
+        self.assertEqual(test_result.exit_code, 0)
 
         mock_subprocess_run.assert_called_once()
         call_args = mock_subprocess_run.call_args[0][0]
@@ -128,8 +128,8 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition.command = "ls /input"
         test_definition.docker = docker
 
-        result = runner._RunTestWithDocker(test_definition)
-        self.assertEqual(result, 1)
+        test_result = runner._RunTestWithDocker(test_definition)
+        self.assertEqual(test_result.exit_code, 1)
 
     @mock.patch("clitooltester.test_runner.subprocess.run")
     def testRunTestWithPackageSuccess(self, mock_subprocess_run):
@@ -151,8 +151,8 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition.command = "%package%/tool"
         test_definition.package = package
 
-        result = runner._RunTestWithPackage(test_definition)
-        self.assertEqual(result, 0)
+        test_result = runner._RunTestWithPackage(test_definition)
+        self.assertEqual(test_result.exit_code, 0)
 
         # Test with input and subprocess.run success
         mock_subprocess_run.reset_mock()
@@ -175,8 +175,8 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_input.name = "data"
         test_input.path = "/data/file.bin"
 
-        result = runner._RunTestWithPackage(test_definition, test_input=test_input)
-        self.assertEqual(result, 0)
+        test_result = runner._RunTestWithPackage(test_definition, test_input=test_input)
+        self.assertEqual(test_result.exit_code, 0)
 
         mock_subprocess_run.assert_called_once()
         call_args = mock_subprocess_run.call_args[0][0]
@@ -199,7 +199,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_subprocess_run.reset_mock()
 
         mock_result = mock.MagicMock()
-        mock_result.returncode = 2
+        mock_result.returncode = 1
         mock_result.stdout = "stdout output\n"
         mock_result.stderr = "stderr output\n"
         mock_subprocess_run.return_value = mock_result
@@ -212,8 +212,8 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition.command = "command"
         test_definition.package = package
 
-        result = runner._RunTestWithPackage(test_definition)
-        self.assertEqual(result, 2)
+        test_result = runner._RunTestWithPackage(test_definition)
+        self.assertEqual(test_result.exit_code, 1)
 
     def testSubstituteInputPlaceholder(self):
         """Tests the _SubstitutePlaceholders function."""
@@ -511,8 +511,8 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition.command = "ls"
         test_definition.docker = docker
 
-        result = runner.RunTest(test_definition)
-        self.assertEqual(result, 0)
+        test_result = runner.RunTest(test_definition)
+        self.assertEqual(test_result.exit_code, 0)
 
         # Test with Docker configuration, input and and subprocess.run success
         mock_subprocess_run.reset_mock()
@@ -535,8 +535,8 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_input.name = "data"
         test_input.path = "/data/file.bin"
 
-        result = runner.RunTest(test_definition, test_input=test_input)
-        self.assertEqual(result, 0)
+        test_result = runner.RunTest(test_definition, test_input=test_input)
+        self.assertEqual(test_result.exit_code, 0)
 
         # Test with package configuration and subprocess.run success
         mock_subprocess_run.reset_mock()
@@ -555,8 +555,8 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition.command = "ls"
         test_definition.package = package
 
-        result = runner.RunTest(test_definition)
-        self.assertEqual(result, 0)
+        test_result = runner.RunTest(test_definition)
+        self.assertEqual(test_result.exit_code, 0)
 
         # Test with package configuration, input and subprocess.run success
         mock_subprocess_run.reset_mock()
@@ -579,8 +579,8 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_input.name = "data"
         test_input.path = "/data/file.bin"
 
-        result = runner.RunTest(test_definition, test_input=test_input)
-        self.assertEqual(result, 0)
+        test_result = runner.RunTest(test_definition, test_input=test_input)
+        self.assertEqual(test_result.exit_code, 0)
 
     @mock.patch("clitooltester.test_runner.subprocess.run")
     def testRunTests(self, mock_subprocess_run):
@@ -602,9 +602,9 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition.command = "ls"
         test_definition.package = package
 
-        result = runner.RunTests(test_definition, jobs=1)
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0], 0)
+        results = runner.RunTests(test_definition, jobs=1)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].exit_code, 0)
 
         # Test single job with input
         mock_subprocess_run.reset_mock()
@@ -638,8 +638,8 @@ class TestRunnerTest(test_lib.BaseTestCase):
             test_inputs=[test_input1, test_input2],
         )
         self.assertEqual(len(results), 2)
-        self.assertEqual(results[0], 0)
-        self.assertEqual(results[1], 0)
+        self.assertEqual(results[0].exit_code, 0)
+        self.assertEqual(results[1].exit_code, 0)
 
         # Test with multiple jobs without input
         mock_subprocess_run.reset_mock()
@@ -658,9 +658,9 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition.command = "ls"
         test_definition.package = package
 
-        result = runner.RunTests(test_definition, jobs=2)
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0], 0)
+        results = runner.RunTests(test_definition, jobs=2)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].exit_code, 0)
 
         # Test with multiple jobs with input
         mock_subprocess_run.reset_mock()
@@ -680,7 +680,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
             mock_result_failure,
             mock_result_success,
         ]
-
         package = resources.PackageDefinition()
         package.path = "/home/user/pkg"
 
@@ -690,16 +689,17 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition.package = package
 
         test_inputs = []
-        for i in range(3):
+        for index in range(3):
             test_input = resources.InputDefinition()
-            test_input.name = f"input{i}"
-            test_input.path = f"/data/file{i}.bin"
+            test_input.name = f"input{index:d}"
+            test_input.path = f"/data/file{index:d}.bin"
             test_inputs.append(test_input)
 
         results = runner.RunTests(test_definition, jobs=2, test_inputs=test_inputs)
         self.assertEqual(len(results), 3)
-        self.assertEqual(results.count(0), 2)
-        self.assertEqual(results.count(1), 1)
+        self.assertEqual(results[0].exit_code, 0)
+        self.assertEqual(results[1].exit_code, 1)
+        self.assertEqual(results[2].exit_code, 0)
 
 
 if __name__ == "__main__":

@@ -92,7 +92,7 @@ def Main():
         )
 
     number_of_tests = len(test_results)
-    number_of_failed_tests = sum(1 for result in test_results if result != 0)
+    number_of_failed_tests = sum(1 for result in test_results if result.exit_code != 0)
 
     print("\nTest results.\n")
 
