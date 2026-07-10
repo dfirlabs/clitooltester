@@ -582,6 +582,118 @@ class TestRunnerTest(test_lib.BaseTestCase):
         result = runner.RunTest(test_definition, test_input=test_input)
         self.assertEqual(result, 0)
 
+    @mock.patch("clitooltester.test_runner.subprocess.run")
+    def testRunTestsSequential(self, mock_subprocess_run):
+        """Tests the RunTests function with sequential execution."""
+        runner = test_runner.TestRunner(quiet=True)
+
+        mock_result = mock.MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = ""
+        mock_result.stderr = ""
+        mock_subprocess_run.return_value = mock_result
+
+        package = resources.PackageDefinition()
+        package.path = "/home/user/pkg"
+
+        test_definition = resources.TestDefinition()
+        test_definition.name = "test"
+        test_definition.command = "ls"
+        test_definition.package = package
+
+        result = runner.RunTests(test_definition, jobs=0)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], 0)
+
+    @mock.patch("clitooltester.test_runner.subprocess.run")
+    def testRunTestsParallel(self, mock_subprocess_run):
+        """Tests the RunTests function with parallel execution."""
+        mock_result = mock.MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = ""
+        mock_result.stderr = ""
+        mock_subprocess_run.return_value = mock_result
+
+        package = resources.PackageDefinition()
+        package.path = "/home/user/pkg"
+
+        test_definition = resources.TestDefinition()
+        test_definition.name = "test"
+        test_definition.command = "ls"
+        test_definition.package = package
+
+        runner = test_runner.TestRunner(quiet=True, jobs=2)
+        result = runner.RunTests(test_definition, jobs=2)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], 0)
+
+    @mock.patch("clitooltester.test_runner.subprocess.run")
+    def testRunTestsWithInputs(self, mock_subprocess_run):
+        """Tests the RunTests function with multiple inputs."""
+        mock_result = mock.MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = ""
+        mock_result.stderr = ""
+        mock_subprocess_run.return_value = mock_result
+
+        package = resources.PackageDefinition()
+        package.path = "/home/user/pkg"
+
+        test_definition = resources.TestDefinition()
+        test_definition.name = "test"
+        test_definition.command = "ls %input%"
+        test_definition.package = package
+
+        test_input1 = resources.InputDefinition()
+        test_input1.name = "input1"
+        test_input1.path = "/data/file1.bin"
+
+        test_input2 = resources.InputDefinition()
+        test_input2.name = "input2"
+        test_input2.path = "/data/file2.bin"
+
+        runner = test_runner.TestRunner(quiet=True)
+        results = runner.RunTests(test_definition, test_inputs=[test_input1, test_input2], jobs=0)
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0], 0)
+        self.assertEqual(results[1], 0)
+
+    @mock.patch("clitooltester.test_runner.subprocess.run")
+    def testRunTestsWithMixedResults(self, mock_subprocess_run):
+        """Tests the RunTests function with mixed success/failure results."""
+        mock_result_success = mock.MagicMock()
+        mock_result_success.returncode = 0
+        mock_result_success.stdout = ""
+        mock_result_success.stderr = ""
+
+        mock_result_failure = mock.MagicMock()
+        mock_result_failure.returncode = 1
+        mock_result_failure.stdout = ""
+        mock_result_failure.stderr = ""
+
+        mock_subprocess_run.side_effect = [mock_result_success, mock_result_failure, mock_result_success]
+
+        package = resources.PackageDefinition()
+        package.path = "/home/user/pkg"
+
+        test_definition = resources.TestDefinition()
+        test_definition.name = "test"
+        test_definition.command = "ls %input%"
+        test_definition.package = package
+
+        test_inputs = []
+        for i in range(3):
+            test_input = resources.InputDefinition()
+            test_input.name = f"input{i}"
+            test_input.path = f"/data/file{i}.bin"
+            test_inputs.append(test_input)
+
+        runner = test_runner.TestRunner(quiet=True, jobs=2)
+        results = runner.RunTests(test_definition, test_inputs=test_inputs, jobs=2)
+        self.assertEqual(len(results), 3)
+        self.assertEqual(results.count(0), 2)
+        self.assertEqual(results.count(1), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

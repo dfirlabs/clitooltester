@@ -3,6 +3,8 @@
 import os
 import pathlib
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import as_completed
 
 from clitooltester import yaml_definitions_file
 
@@ -10,7 +12,7 @@ from clitooltester import yaml_definitions_file
 class TestRunner:
     """Command line tool test runner."""
 
-    def __init__(self, quiet=False, verbose=False):
+    def __init__(self, quiet=False, verbose=False, jobs=0):
         """Initializes a command line tool test runner.
 
         Args:
@@ -18,10 +20,12 @@ class TestRunner:
               overrides verbose.
           verbose (Optional[bool]): value to indicate stdout and stderr should be
               printed on error.
+          jobs (Optional[int]): number of parallel jobs to run (0 = sequential).
         """
         super().__init__()
         self._quiet = quiet
         self._verbose = verbose
+        self._jobs = jobs
 
     def _RunTestWithDocker(self, test_definition, test_input=None):
         """Runs a test with Docker.
@@ -291,3 +295,53 @@ class TestRunner:
             return self._RunTestWithDocker(test_definition, test_input=test_input)
 
         return self._RunTestWithPackage(test_definition, test_input=test_input)
+
+    def RunTests(self, test_definition, test_inputs=None, jobs=0, quiet=True):
+        """Runs tests and collects results.
+
+        Args:
+          test_definition (TestDefinition): test definition.
+          test_inputs (Optional[list[InputDefinition]]): input definitions.
+              If None, runs a single test with no input.
+          jobs (int): number of parallel jobs (0 = sequential).
+          quiet (bool): whether to suppress test output.
+
+        Returns:
+          list[int]: list of exit codes from each test.
+        """
+        if test_inputs:
+            tasks = [
+                (test_definition, test_input)
+                for test_input in test_inputs
+            ]
+        else:
+            tasks = [(test_definition, None)]
+
+        if jobs <= 1:
+            results = []
+            for task in tasks:
+                test_runner = TestRunner(quiet=quiet, verbose=self._verbose)
+                results.append(test_runner.RunTest(*task))
+            return results
+
+        results = [None] * len(tasks)
+
+        def _run_one(index, task):
+            test_runner = TestRunner(quiet=quiet, verbose=self._verbose)
+            return index, test_runner.RunTest(*task)
+
+        if self._jobs > 0:
+            max_workers = self._jobs
+        else:
+            max_workers = jobs
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(_run_one, i, task): (i, task)
+                for i, task in enumerate(tasks)
+            }
+            for future in as_completed(futures):
+                i, exit_code = future.result()
+                results[i] = exit_code
+
+        return results
