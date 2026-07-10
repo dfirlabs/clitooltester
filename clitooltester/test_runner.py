@@ -2,6 +2,7 @@
 
 import os
 import pathlib
+import re
 import shlex
 import shutil
 import subprocess
@@ -14,6 +15,8 @@ from clitooltester import yaml_definitions_file
 
 class TestRunner:
     """Command line tool test runner."""
+
+    _PLACEHOLDER_RE = re.compile(r"%[0-9A-Za-z_]+%")
 
     def __init__(self, quiet=False, verbose=False):
         """Initializes a command line tool test runner.
@@ -63,7 +66,8 @@ class TestRunner:
           TestResult: test result.
 
         Raises:
-          RuntimeError: if unable to find docker binary.
+          RuntimeError: if unable to find docker binary or if the command contains
+              unresolved placeholders.
           ValueError: if the Docker configuration is missing.
         """
         if not test_definition.docker:
@@ -73,24 +77,35 @@ class TestRunner:
         if not docker_path:
             raise RuntimeError("Unable to determine location of docker binary")
 
-        test_values = {}
-
-        test_description = f"{test_definition.name:s}"
-
         arguments = [docker_path, "run", "--rm"]
+        test_description = f"{test_definition.name:s}"
+        test_parameters = {}
 
         if test_input:
             path = pathlib.Path(test_input.path)
+            if not path.is_absolute():
+                path = path.resolve()
 
             arguments.extend(["-v", f"{path.parent!s}:/input:z"])
             test_description = f"{test_description:s} with input: '{test_input.name:s}'"
-            test_values["%input%"] = f'"/input/{path.name:s}"'
+            test_parameters = {
+                f"%{key:s}%": str(value) for key, value in test_input.parameters.items()
+            }
+            test_parameters["%input%"] = f'"/input/{path.name:s}"'
 
         docker_definition = test_definition.docker
 
         arguments.append(docker_definition.tag)
 
-        command = self._SubstitutePlaceholders(test_definition.command, test_values)
+        command = self._SubstitutePlaceholders(test_definition.command, test_parameters)
+
+        matches = self._PLACEHOLDER_RE.findall(command)
+        if matches:
+            placeholders = ", ".join(matches)
+            raise RuntimeError(
+                f"Command contains unresolved placeholders: {placeholders:s}"
+            )
+
         arguments.extend(shlex.split(command))
 
         subprocess_result = subprocess.run(
@@ -119,19 +134,31 @@ class TestRunner:
           TestResult: test result.
 
         Raises:
+          RuntimeError: if the command contains unresolved placeholders.
           ValueError: if the package configuration is missing.
         """
         if not test_definition.package:
             raise ValueError("Invalid test definition - missing package configuration")
 
         test_description = f"{test_definition.name:s}"
-        test_values = {"%package%": f'"{test_definition.package.path:s}"'}
+        test_parameters = {}
 
         if test_input:
             test_description = f"{test_description:s} with input: '{test_input.name:s}'"
-            test_values["%input%"] = f'"{test_input.path:s}"'
+            test_parameters = {
+                f"%{key:s}%": str(value) for key, value in test_input.parameters.items()
+            }
+            test_parameters["%input%"] = f'"{test_input.path:s}"'
 
-        command = self._SubstitutePlaceholders(test_definition.command, test_values)
+        command = self._SubstitutePlaceholders(test_definition.command, test_parameters)
+
+        matches = self._PLACEHOLDER_RE.findall(command)
+        if matches:
+            placeholders = ", ".join(matches)
+            raise RuntimeError(
+                f"Command contains unresolved placeholders: {placeholders:s}"
+            )
+
         arguments = shlex.split(command)
 
         subprocess_result = subprocess.run(
@@ -149,7 +176,7 @@ class TestRunner:
 
         return test_result
 
-    def _SubstitutePlaceholders(self, command, test_values):
+    def _SubstitutePlaceholders(self, command, test_parameters):
         """Substitutes placeholders in a command.
 
         Supported placeholders:
@@ -158,12 +185,12 @@ class TestRunner:
 
         Args:
           command (str): command with placeholders.
-          test_values (dict[str, str]): test values per placeholder.
+          test_parameters (dict[str, str]): test parameters.
 
         Returns:
           str: command with placeholders substituted.
         """
-        for key, value in test_values.items():
+        for key, value in test_parameters.items():
             command = command.replace(key, value)
 
         return command
@@ -178,22 +205,29 @@ class TestRunner:
           int: exit code from the build command.
 
         Raises:
+          RuntimeError: if the command contains unresolved placeholders.
           ValueError: if the package configuration is missing.
         """
         if not test_definition.package:
             raise ValueError("Invalid test definition - missing package configuration")
-
-        test_values = {"%package%": f'"{test_definition.package.path:s}"'}
 
         # Note that the user shell is used to not to have to set up the build
         # environment.
         shell = os.environ.get("SHELL", "/bin/bash")
 
         arguments = [shell, "-l", "-i", "-c"]
+        test_parameters = {"%package%": f'"{test_definition.package.path:s}"'}
 
         command = self._SubstitutePlaceholders(
-            test_definition.package.build, test_values
+            test_definition.package.build, test_parameters
         )
+        matches = self._PLACEHOLDER_RE.findall(command)
+        if matches:
+            placeholders = ", ".join(matches)
+            raise RuntimeError(
+                f"Command contains unresolved placeholders: {placeholders:s}"
+            )
+
         arguments.extend(shlex.split(command))
 
         result = subprocess.run(

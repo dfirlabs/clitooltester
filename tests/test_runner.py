@@ -151,7 +151,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
 
         test_definition = resources.TestDefinition()
         test_definition.name = "my_test"
-        test_definition.command = "%package%/tool"
+        test_definition.command = "tool"
         test_definition.package = package
 
         test_result = runner._RunTestWithPackage(test_definition)
@@ -171,7 +171,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
 
         test_definition = resources.TestDefinition()
         test_definition.name = "my_test"
-        test_definition.command = "%package%/tool %input%"
+        test_definition.command = "tool %input%"
         test_definition.package = package
 
         test_input = resources.InputDefinition()
