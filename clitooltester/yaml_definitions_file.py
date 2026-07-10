@@ -13,24 +13,35 @@ class YAMLInputsDefinitionsFile:
     input definition consists of a single input:
 
     name: ext2
+    description: ext2 file system storage media image
     path: test_data/ext2.raw
+    parameters:
+      partition_offset: 0
 
     or a set of inputs:
 
     set:
       name: ext
+      description: Extended File System (ext) storage media images
       base_path: test_data
       elements:
         name: ext2
+        description: ext2 file system storage media image
         path: ext2.raw
+        parameters:
+          partition_offset: 0
 
     Where:
+    * description, optional description;
     * name, that uniquely identifies the input;
+    * parameters, optional parameters.
     * path, location of the input;
     * set, input set.
+
+    Note that uniqueness of the name is not enforced.
     """
 
-    _SUPPORTED_KEYS = frozenset(["name", "path", "set"])
+    _SUPPORTED_KEYS = frozenset(["description", "name", "parameters", "path", "set"])
 
     def _ReadInputDefinition(self, yaml_input_definition):
         """Reads an input definition from a dictionary.
@@ -66,7 +77,9 @@ class YAMLInputsDefinitionsFile:
                 raise RuntimeError("Invalid input definition missing path.")
 
             input_definition = resources.InputDefinition()
+            input_definition.description = yaml_input_definition.get("description")
             input_definition.name = name
+            input_definition.parameters = yaml_input_definition.get("parameters")
             input_definition.path = path
 
         return input_definition
@@ -119,7 +132,9 @@ class YAMLInputsDefinitionsFile:
                 )
 
             input_definition = resources.InputDefinition()
+            input_definition.description = element.get("description")
             input_definition.name = name
+            input_definition.parameters = element.get("parameters")
             input_definition.path = path
 
             input_set_definition.elements.append(input_definition)
@@ -171,18 +186,22 @@ class YAMLTestDefinitionFile:
     A YAML-based test definitions file contains a test definition, which consists of:
 
     name: plaso_log2timeline
+    description: Run log2timeline.py with input
     command: log2timeline.py %input%
     package:
       path: /usr/bin
 
     Where:
+    * description, optional description;
     * name, that uniquely identifies the test;
     * command, with arguments, with can consist of placeholder values, such as: %input%.
     * docker, Docker configuration.
     * package, package configuration.
+
+    Note that uniqueness of the name is not enforced.
     """
 
-    _SUPPORTED_KEYS = frozenset(["command", "docker", "name", "package"])
+    _SUPPORTED_KEYS = frozenset(["command", "description", "docker", "name", "package"])
 
     def _ReadDockerDefinition(self, yaml_docker_definition):
         """Reads a Docker definition from a dictionary.
@@ -270,6 +289,7 @@ class YAMLTestDefinitionFile:
 
         test_definition = resources.TestDefinition()
         test_definition.command = command
+        test_definition.description = yaml_test_definition.get("description")
         test_definition.name = name
 
         if docker_definition:

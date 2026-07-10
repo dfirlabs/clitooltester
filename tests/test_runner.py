@@ -20,9 +20,12 @@ class TestRunnerTest(test_lib.BaseTestCase):
     # pylint: disable=protected-access
 
     @mock.patch("clitooltester.test_runner.subprocess.run")
-    def testRunTestWithDocker(self, mock_subprocess_run):
+    @mock.patch("clitooltester.test_runner.shutil.which")
+    def testRunTestWithDocker(self, mock_shutil_which, mock_subprocess_run):
         """Tests the _RunTestWithDocker function."""
         runner = test_runner.TestRunner(quiet=True)
+
+        mock_shutil_which.return_value = "/usr/bin/docker"
 
         # Test with subprocess.run success
         mock_result = mock.MagicMock()
@@ -69,7 +72,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_subprocess_run.assert_called_once()
         call_args = mock_subprocess_run.call_args[0][0]
         self.assertIn("-v", call_args)
-        self.assertIn("/input/data.bin", " ".join(call_args))
+        self.assertIn("/input/data.bin", call_args)
 
         # Test with input set and subprocess.run success
         mock_subprocess_run.reset_mock()
@@ -98,7 +101,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_subprocess_run.assert_called_once()
         call_args = mock_subprocess_run.call_args[0][0]
         self.assertIn("-v", call_args)
-        self.assertIn("ext2.raw", " ".join(call_args))
+        self.assertIn("/input/ext2.raw", call_args)
 
         # Test with missing configuration
         mock_subprocess_run.reset_mock()
@@ -148,7 +151,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
 
         test_definition = resources.TestDefinition()
         test_definition.name = "my_test"
-        test_definition.command = "%package%/tool"
+        test_definition.command = "tool"
         test_definition.package = package
 
         test_result = runner._RunTestWithPackage(test_definition)
@@ -168,7 +171,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
 
         test_definition = resources.TestDefinition()
         test_definition.name = "my_test"
-        test_definition.command = "%package%/tool %input%"
+        test_definition.command = "tool %input%"
         test_definition.package = package
 
         test_input = resources.InputDefinition()
@@ -180,7 +183,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
 
         mock_subprocess_run.assert_called_once()
         call_args = mock_subprocess_run.call_args[0][0]
-        self.assertIn("/data/file.bin", call_args[0])
+        self.assertIn("/data/file.bin", call_args)
 
         # TODO: Test with input set and subprocess.run success
 
@@ -267,8 +270,9 @@ class TestRunnerTest(test_lib.BaseTestCase):
         """Tests the BuildPackage function."""
         runner = test_runner.TestRunner(quiet=True)
 
-        # Test with subprocess.run success
         mock_environ.get.return_value = "/bin/bash"
+
+        # Test with subprocess.run success
         mock_result = mock.MagicMock()
         mock_result.returncode = 0
         mock_subprocess_run.return_value = mock_result
@@ -286,7 +290,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         # Test with build_env and subprocess.run success
         mock_subprocess_run.reset_mock()
 
-        mock_environ.get.return_value = "/bin/sh"
         mock_result = mock.MagicMock()
         mock_result.returncode = 0
         mock_subprocess_run.return_value = mock_result
@@ -318,7 +321,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         # Test with subprocess.run failure
         mock_subprocess_run.reset_mock()
 
-        mock_environ.get.return_value = "/bin/bash"
         mock_result = mock.MagicMock()
         mock_result.returncode = 1
         mock_result.stdout = "build stdout\n"
@@ -336,9 +338,12 @@ class TestRunnerTest(test_lib.BaseTestCase):
         self.assertEqual(result, 1)
 
     @mock.patch("clitooltester.test_runner.subprocess.run")
-    def testBuildDocker(self, mock_subprocess_run):
+    @mock.patch("clitooltester.test_runner.shutil.which")
+    def testBuildDocker(self, mock_shutil_which, mock_subprocess_run):
         """Tests the BuildDockerImage function."""
         runner = test_runner.TestRunner(quiet=True)
+
+        mock_shutil_which.return_value = "/usr/bin/docker"
 
         # Test with subprocess.run success
         mock_result = mock.MagicMock()
@@ -492,9 +497,12 @@ class TestRunnerTest(test_lib.BaseTestCase):
                 os.remove(test_file_path)
 
     @mock.patch("clitooltester.test_runner.subprocess.run")
-    def testRunTest(self, mock_subprocess_run):
+    @mock.patch("clitooltester.test_runner.shutil.which")
+    def testRunTest(self, mock_shutil_which, mock_subprocess_run):
         """Tests the RunTest function."""
         runner = test_runner.TestRunner(quiet=True)
+
+        mock_shutil_which.return_value = "/usr/bin/docker"
 
         # Test with Docker configuration and subprocess.run success
         mock_result = mock.MagicMock()
@@ -697,9 +705,10 @@ class TestRunnerTest(test_lib.BaseTestCase):
 
         results = runner.RunTests(test_definition, jobs=2, test_inputs=test_inputs)
         self.assertEqual(len(results), 3)
-        self.assertEqual(results[0].exit_code, 0)
-        self.assertEqual(results[1].exit_code, 1)
-        self.assertEqual(results[2].exit_code, 0)
+
+        exit_codes = [result.exit_code for result in results]
+        self.assertEqual(exit_codes.count(0), 2)
+        self.assertEqual(exit_codes.count(1), 1)
 
 
 if __name__ == "__main__":

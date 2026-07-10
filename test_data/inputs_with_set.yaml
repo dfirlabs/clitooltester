@@ -2,7 +2,11 @@
 ---
 set:
   name: ext
+  description: Extended File System (ext) storage media images
   base_path: test_data
   elements:
   - name: ext2
+    description: ext2 file system storage media image
     path: ext2.raw
+    parameters:
+      partition_offset: 0

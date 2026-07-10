@@ -39,14 +39,18 @@ class InputDefinition:
     """Input definition.
 
     Attributes:
+      description (str): description of the input.
       name (str): name that uniquely identifies the input.
+      paramters (dict[str, str]): parameters accompanying the input.
       path (str): location of the input.
     """
 
     def __init__(self):
         """Initializes an input definition."""
         super().__init__()
+        self.description = None
         self.name = None
+        self.parameters = {}
         self.path = None
 
 
