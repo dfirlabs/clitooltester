@@ -21,8 +21,9 @@ class TestRunnerTest(test_lib.BaseTestCase):
 
     def testSubstituteInputPlaceholder(self):
         """Tests the _SubstitutePlaceholders function."""
+        runner = test_runner.TestRunner(quiet=True)
+
         # Test with %input%
-        runner = test_runner.TestRunner()
         command = "%input%"
         test_values = {"%input%": "/input/test.raw"}
 
@@ -30,7 +31,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         self.assertEqual(result, "/input/test.raw")
 
         # Test with %package%
-        runner = test_runner.TestRunner()
         command = "%package%/scripts/analyze.py"
         test_values = {"%package%": "/home/user/pkg"}
 
@@ -38,7 +38,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         self.assertEqual(result, "/home/user/pkg/scripts/analyze.py")
 
         # Test with %input% and %package%
-        runner = test_runner.TestRunner()
         command = "%package%/tool %input%"
         test_values = {"%package%": "/home/user/pkg", "%input%": "/input/data"}
 
@@ -46,7 +45,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         self.assertEqual(result, "/home/user/pkg/tool /input/data")
 
         # Test without placeholders
-        runner = test_runner.TestRunner()
         command = "ls -la"
         test_values = {}
 
@@ -54,7 +52,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         self.assertEqual(result, "ls -la")
 
         # Test with unsupported placeholder
-        runner = test_runner.TestRunner()
         command = "%input%/other.txt"
         test_values = {"%in%": "partial"}
 
@@ -62,7 +59,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         self.assertEqual(result, "%input%/other.txt")
 
         # Test with multiple occurrences of %input%
-        runner = test_runner.TestRunner()
         command = "%input% and %input%"
         test_values = {"%input%": "/path"}
 
@@ -72,6 +68,8 @@ class TestRunnerTest(test_lib.BaseTestCase):
     @mock.patch("clitooltester.test_runner.subprocess.run")
     def testRunTestWithDocker(self, mock_subprocess_run):
         """Tests the _RunTestWithDocker function."""
+        runner = test_runner.TestRunner(quiet=True)
+
         # Test with subprocess.run success
         mock_result = mock.MagicMock()
         mock_result.returncode = 0
@@ -79,7 +77,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_result.stderr = ""
         mock_subprocess_run.return_value = mock_result
 
-        runner = test_runner.TestRunner()
         docker = resources.DockerDefinition()
         docker.tag = "myimage:latest"
 
@@ -88,7 +85,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition.command = "ls /input"
         test_definition.docker = docker
 
-        result = runner._RunTestWithDocker(test_definition, silent=True)
+        result = runner._RunTestWithDocker(test_definition)
         self.assertEqual(result, 0)
 
         # Test with input and subprocess.run success
@@ -100,7 +97,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_result.stderr = ""
         mock_subprocess_run.return_value = mock_result
 
-        runner = test_runner.TestRunner()
         docker = resources.DockerDefinition()
         docker.tag = "myimage:latest"
 
@@ -113,9 +109,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_input.name = "test_input"
         test_input.path = "/some/path/data.bin"
 
-        result = runner._RunTestWithDocker(
-            test_definition, silent=True, test_input=test_input
-        )
+        result = runner._RunTestWithDocker(test_definition, test_input=test_input)
         self.assertEqual(result, 0)
 
         mock_subprocess_run.assert_called_once()
@@ -132,7 +126,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_result.stderr = ""
         mock_subprocess_run.return_value = mock_result
 
-        runner = test_runner.TestRunner()
         docker = resources.DockerDefinition()
         docker.tag = "myimage:latest"
 
@@ -145,9 +138,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_input.name = "ext/ext2"
         test_input.path = "/mnt/hdd/test_data/ext/ext2.raw"
 
-        result = runner._RunTestWithDocker(
-            test_definition, silent=True, test_input=test_input
-        )
+        result = runner._RunTestWithDocker(test_definition, test_input=test_input)
         self.assertEqual(result, 0)
 
         mock_subprocess_run.assert_called_once()
@@ -158,14 +149,13 @@ class TestRunnerTest(test_lib.BaseTestCase):
         # Test with missing configuration
         mock_subprocess_run.reset_mock()
 
-        runner = test_runner.TestRunner()
         test_definition = resources.TestDefinition()
         test_definition.name = "test"
         test_definition.command = "mycommand"
         test_definition.docker = None
 
         with self.assertRaises(ValueError):
-            runner._RunTestWithDocker(test_definition, silent=True)
+            runner._RunTestWithDocker(test_definition)
 
         # Test with subprocess.run failure
         mock_subprocess_run.reset_mock()
@@ -176,7 +166,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_result.stderr = "stderr output\n"
         mock_subprocess_run.return_value = mock_result
 
-        runner = test_runner.TestRunner()
         docker = resources.DockerDefinition()
         docker.tag = "myimage:latest"
 
@@ -185,12 +174,14 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition.command = "ls /input"
         test_definition.docker = docker
 
-        result = runner._RunTestWithDocker(test_definition, silent=True)
+        result = runner._RunTestWithDocker(test_definition)
         self.assertEqual(result, 1)
 
     @mock.patch("clitooltester.test_runner.subprocess.run")
     def testRunTestWithPackageSuccess(self, mock_subprocess_run):
         """Tests the _RunTestWithPackage function."""
+        runner = test_runner.TestRunner(quiet=True)
+
         # Test with subprocess.run success
         mock_result = mock.MagicMock()
         mock_result.returncode = 0
@@ -198,7 +189,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_result.stderr = ""
         mock_subprocess_run.return_value = mock_result
 
-        runner = test_runner.TestRunner()
         package = resources.PackageDefinition()
         package.path = "/home/user/pkg"
 
@@ -207,7 +197,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition.command = "%package%/tool"
         test_definition.package = package
 
-        result = runner._RunTestWithPackage(test_definition, silent=True)
+        result = runner._RunTestWithPackage(test_definition)
         self.assertEqual(result, 0)
 
         # Test with input and subprocess.run success
@@ -219,7 +209,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_result.stderr = ""
         mock_subprocess_run.return_value = mock_result
 
-        runner = test_runner.TestRunner()
         package = resources.PackageDefinition()
         package.path = "/home/user/pkg"
 
@@ -232,9 +221,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_input.name = "data"
         test_input.path = "/data/file.bin"
 
-        result = runner._RunTestWithPackage(
-            test_definition, silent=True, test_input=test_input
-        )
+        result = runner._RunTestWithPackage(test_definition, test_input=test_input)
         self.assertEqual(result, 0)
 
         mock_subprocess_run.assert_called_once()
@@ -246,14 +233,13 @@ class TestRunnerTest(test_lib.BaseTestCase):
         # Test with missing configuration
         mock_subprocess_run.reset_mock()
 
-        runner = test_runner.TestRunner()
         test_definition = resources.TestDefinition()
         test_definition.name = "test"
         test_definition.command = "mycommand"
         test_definition.package = None
 
         with self.assertRaises(ValueError):
-            runner._RunTestWithPackage(test_definition, silent=True)
+            runner._RunTestWithPackage(test_definition)
 
         # Test with subprocess.run failure
         mock_subprocess_run.reset_mock()
@@ -264,7 +250,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_result.stderr = "stderr output\n"
         mock_subprocess_run.return_value = mock_result
 
-        runner = test_runner.TestRunner()
         package = resources.PackageDefinition()
         package.path = "/home/user/pkg"
 
@@ -273,20 +258,21 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition.command = "command"
         test_definition.package = package
 
-        result = runner._RunTestWithPackage(test_definition, silent=True)
+        result = runner._RunTestWithPackage(test_definition)
         self.assertEqual(result, 2)
 
     @mock.patch("clitooltester.test_runner.subprocess.run")
     @mock.patch("clitooltester.test_runner.os.environ")
     def testBuildPackage(self, mock_environ, mock_subprocess_run):
         """Tests the BuildPackage function."""
+        runner = test_runner.TestRunner(quiet=True)
+
         # Test with subprocess.run success
         mock_environ.get.return_value = "/bin/bash"
         mock_result = mock.MagicMock()
         mock_result.returncode = 0
         mock_subprocess_run.return_value = mock_result
 
-        runner = test_runner.TestRunner()
         package = resources.PackageDefinition()
         package.path = "/home/user/pkg"
         package.build = "make install"
@@ -294,7 +280,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition = resources.TestDefinition()
         test_definition.package = package
 
-        result = runner.BuildPackage(test_definition, silent=True)
+        result = runner.BuildPackage(test_definition)
         self.assertEqual(result, 0)
 
         # Test with build_env and subprocess.run success
@@ -305,7 +291,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_result.returncode = 0
         mock_subprocess_run.return_value = mock_result
 
-        runner = test_runner.TestRunner()
         package = resources.PackageDefinition()
         package.path = "/home/user/pkg"
         package.build = "build.sh"
@@ -313,7 +298,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition = resources.TestDefinition()
         test_definition.package = package
 
-        result = runner.BuildPackage(test_definition, silent=True)
+        result = runner.BuildPackage(test_definition)
         self.assertEqual(result, 0)
 
         mock_subprocess_run.assert_called_once()
@@ -324,12 +309,11 @@ class TestRunnerTest(test_lib.BaseTestCase):
         # Test with missing configuration
         mock_subprocess_run.reset_mock()
 
-        runner = test_runner.TestRunner()
         test_definition = resources.TestDefinition()
         test_definition.package = None
 
         with self.assertRaises(ValueError):
-            runner.BuildPackage(test_definition, silent=True)
+            runner.BuildPackage(test_definition)
 
         # Test with subprocess.run failure
         mock_subprocess_run.reset_mock()
@@ -341,7 +325,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_result.stderr = "build stderr\n"
         mock_subprocess_run.return_value = mock_result
 
-        runner = test_runner.TestRunner()
         package = resources.PackageDefinition()
         package.path = "/home/user/pkg"
         package.build = "make install"
@@ -349,18 +332,19 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition = resources.TestDefinition()
         test_definition.package = package
 
-        result = runner.BuildPackage(test_definition, silent=True)
+        result = runner.BuildPackage(test_definition)
         self.assertEqual(result, 1)
 
     @mock.patch("clitooltester.test_runner.subprocess.run")
     def testBuildDocker(self, mock_subprocess_run):
         """Tests the BuildDockerImage function."""
+        runner = test_runner.TestRunner(quiet=True)
+
         # Test with subprocess.run success
         mock_result = mock.MagicMock()
         mock_result.returncode = 0
         mock_subprocess_run.return_value = mock_result
 
-        runner = test_runner.TestRunner()
         docker = resources.DockerDefinition()
         docker.tag = "myimage:latest"
         docker.dockerfile = "Dockerfile"
@@ -368,7 +352,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition = resources.TestDefinition()
         test_definition.docker = docker
 
-        result = runner.BuildDockerImage(test_definition, silent=True)
+        result = runner.BuildDockerImage(test_definition)
         self.assertEqual(result, 0)
 
         mock_subprocess_run.assert_called_once()
@@ -385,7 +369,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_result.stderr = "docker stderr\n"
         mock_subprocess_run.return_value = mock_result
 
-        runner = test_runner.TestRunner()
         docker = resources.DockerDefinition()
         docker.tag = "myimage:latest"
         docker.dockerfile = "Dockerfile"
@@ -393,23 +376,21 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition = resources.TestDefinition()
         test_definition.docker = docker
 
-        result = runner.BuildDockerImage(test_definition, silent=True)
+        result = runner.BuildDockerImage(test_definition)
         self.assertEqual(result, 1)
 
         # Test with missing configuration
         mock_subprocess_run.reset_mock()
 
-        runner = test_runner.TestRunner()
         test_definition = resources.TestDefinition()
         test_definition.docker = None
 
         with self.assertRaises(ValueError):
-            runner.BuildDockerImage(test_definition, silent=True)
+            runner.BuildDockerImage(test_definition)
 
         # Test with missing dockerfile
         mock_subprocess_run.reset_mock()
 
-        runner = test_runner.TestRunner()
         docker = resources.DockerDefinition()
         docker.tag = "myimage:latest"
         docker.dockerfile = None
@@ -418,14 +399,15 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition.docker = docker
 
         with self.assertRaises(ValueError):
-            runner.BuildDockerImage(test_definition, silent=True)
+            runner.BuildDockerImage(test_definition)
 
     def testReadInputsConfiguration(self):
         """Tests the ReadInputsConfiguration function."""
+        runner = test_runner.TestRunner(quiet=True)
+
         test_file_path = self._GetTestFilePath(["inputs.yaml"])
         self._SkipIfPathNotExists(test_file_path)
 
-        runner = test_runner.TestRunner()
         inputs = runner.ReadInputsConfiguration(test_file_path)
 
         self.assertEqual(len(inputs), 1)
@@ -435,7 +417,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_file_path = self._GetTestFilePath(["inputs_with_set.yaml"])
         self._SkipIfPathNotExists(test_file_path)
 
-        runner = test_runner.TestRunner()
         inputs = runner.ReadInputsConfiguration(test_file_path)
 
         self.assertEqual(len(inputs), 1)
@@ -443,10 +424,11 @@ class TestRunnerTest(test_lib.BaseTestCase):
 
     def testReadTestConfiguration(self):
         """Tests the ReadTestConfiguration function."""
+        runner = test_runner.TestRunner(quiet=True)
+
         test_file_path = self._GetTestFilePath(["test.yaml"])
         self._SkipIfPathNotExists(test_file_path)
 
-        runner = test_runner.TestRunner()
         result = runner.ReadTestConfiguration(test_file_path)
 
         self.assertEqual(result.name, "dfimagetools_recursive_hasher")
@@ -459,7 +441,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
             with open(test_file_path, "w", encoding="utf-8") as file_object:
                 file_object.write("---\n")
 
-            runner = test_runner.TestRunner()
             with self.assertRaises(RuntimeError):
                 runner.ReadTestConfiguration(test_file_path)
 
@@ -489,7 +470,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
             with open(test_file_path, "w", encoding="utf-8") as file_object:
                 file_object.write(yaml_content)
 
-            runner = test_runner.TestRunner()
             with self.assertRaises(RuntimeError):
                 runner.ReadTestConfiguration(test_file_path)
 
@@ -501,7 +481,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         _, test_file_path = tempfile.mkstemp(suffix=".yaml")
 
         try:
-            runner = test_runner.TestRunner()
             with open(test_file_path, "w", encoding="utf-8") as file_object:
                 _ = file_object
 
@@ -515,6 +494,8 @@ class TestRunnerTest(test_lib.BaseTestCase):
     @mock.patch("clitooltester.test_runner.subprocess.run")
     def testRunTest(self, mock_subprocess_run):
         """Tests the RunTest function."""
+        runner = test_runner.TestRunner(quiet=True)
+
         # Test with Docker configuration and subprocess.run success
         mock_result = mock.MagicMock()
         mock_result.returncode = 0
@@ -522,7 +503,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_result.stderr = ""
         mock_subprocess_run.return_value = mock_result
 
-        runner = test_runner.TestRunner()
         docker = resources.DockerDefinition()
         docker.tag = "test:latest"
 
@@ -531,7 +511,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition.command = "ls"
         test_definition.docker = docker
 
-        result = runner.RunTest(test_definition, silent=True)
+        result = runner.RunTest(test_definition)
         self.assertEqual(result, 0)
 
         # Test with Docker configuration, input and and subprocess.run success
@@ -543,7 +523,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_result.stderr = ""
         mock_subprocess_run.return_value = mock_result
 
-        runner = test_runner.TestRunner()
         docker = resources.DockerDefinition()
         docker.tag = "test:latest"
 
@@ -556,7 +535,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_input.name = "data"
         test_input.path = "/data/file.bin"
 
-        result = runner.RunTest(test_definition, silent=True, test_input=test_input)
+        result = runner.RunTest(test_definition, test_input=test_input)
         self.assertEqual(result, 0)
 
         # Test with package configuration and subprocess.run success
@@ -568,7 +547,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_result.stderr = ""
         mock_subprocess_run.return_value = mock_result
 
-        runner = test_runner.TestRunner()
         package = resources.PackageDefinition()
         package.path = "/home/user/pkg"
 
@@ -577,7 +555,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_definition.command = "ls"
         test_definition.package = package
 
-        result = runner.RunTest(test_definition, silent=True)
+        result = runner.RunTest(test_definition)
         self.assertEqual(result, 0)
 
         # Test with package configuration, input and subprocess.run success
@@ -589,7 +567,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_result.stderr = ""
         mock_subprocess_run.return_value = mock_result
 
-        runner = test_runner.TestRunner()
         package = resources.PackageDefinition()
         package.path = "/home/user/pkg"
 
@@ -602,7 +579,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
         test_input.name = "data"
         test_input.path = "/data/file.bin"
 
-        result = runner.RunTest(test_definition, silent=True, test_input=test_input)
+        result = runner.RunTest(test_definition, test_input=test_input)
         self.assertEqual(result, 0)
 
 
