@@ -294,15 +294,13 @@ class TestRunner:
 
         return self._RunTestWithPackage(test_definition, test_input=test_input)
 
-    def RunTests(self, test_definition, jobs=1, test_inputs=None, quiet=True):
+    def RunTests(self, test_definition, jobs=1, test_inputs=None):
         """Runs tests and collects results.
 
         Args:
           test_definition (TestDefinition): test definition.
-          test_inputs (Optional[list[InputDefinition]]): input definitions.
-              If None, runs a single test with no input.
           jobs (Optional[int]): number of parallel jobs to run, where 1 is sequential.
-          quiet (bool): whether to suppress test output.
+          test_inputs (Optional[list[InputDefinition]]): input definitions.
 
         Returns:
           list[int]: list of exit codes from each test.
@@ -315,7 +313,7 @@ class TestRunner:
         if jobs <= 1:
             results = []
             for task in tasks:
-                test_runner = TestRunner(quiet=quiet, verbose=self._verbose)
+                test_runner = TestRunner(quiet=self._quiet, verbose=self._verbose)
                 results.append(test_runner.RunTest(*task))
 
             return results
@@ -323,7 +321,7 @@ class TestRunner:
         results = [None] * len(tasks)
 
         def _run_job(index, task):
-            test_runner = TestRunner(quiet=quiet, verbose=self._verbose)
+            test_runner = TestRunner(quiet=self._quiet, verbose=self._verbose)
             return index, test_runner.RunTest(*task)
 
         with futures.ThreadPoolExecutor(max_workers=jobs) as executor:
