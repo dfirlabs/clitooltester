@@ -36,8 +36,8 @@ class TestRunner:
             path = pathlib.Path(test_input.path)
 
             arguments.extend(["-v", f"{path.parent!s}:/input:z"])
-            test_description = f"{test_description:s} with input: {test_input.name:s}"
-            test_values["%input%"] = f"/input/{path.name:s}"
+            test_description = f"{test_description:s} with input: '{test_input.name:s}'"
+            test_values["%input%"] = f'"/input/{path.name:s}"'
 
         docker_definition = test_definition.docker
 
@@ -88,11 +88,11 @@ class TestRunner:
             raise ValueError("Invalid test definition - missing package configuration")
 
         test_description = f"{test_definition.name:s}"
-        test_values = {"%package%": test_definition.package.path}
+        test_values = {"%package%": f'"{test_definition.package.path:s}"'}
 
         if test_input:
-            test_description = f"{test_description:s} with input: {test_input.name:s}"
-            test_values["%input%"] = test_input.path
+            test_description = f"{test_description:s} with input: '{test_input.name:s}'"
+            test_values["%input%"] = f'"{test_input.path:s}"'
 
         command = self._SubstitutePlaceholders(test_definition.command, test_values)
         arguments = [command]
@@ -158,7 +158,7 @@ class TestRunner:
         if not test_definition.package:
             raise ValueError("Invalid test definition - missing package configuration")
 
-        test_values = {"%package%": test_definition.package.path}
+        test_values = {"%package%": f'"{test_definition.package.path:s}"'}
 
         # Note that the user shell is used to not to have to set up the build
         # environment.
