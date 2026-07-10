@@ -20,9 +20,12 @@ class TestRunnerTest(test_lib.BaseTestCase):
     # pylint: disable=protected-access
 
     @mock.patch("clitooltester.test_runner.subprocess.run")
-    def testRunTestWithDocker(self, mock_subprocess_run):
+    @mock.patch("clitooltester.test_runner.shutil.which")
+    def testRunTestWithDocker(self, mock_shutil_which, mock_subprocess_run):
         """Tests the _RunTestWithDocker function."""
         runner = test_runner.TestRunner(quiet=True)
+
+        mock_shutil_which.return_value = "/usr/bin/docker"
 
         # Test with subprocess.run success
         mock_result = mock.MagicMock()
@@ -267,8 +270,9 @@ class TestRunnerTest(test_lib.BaseTestCase):
         """Tests the BuildPackage function."""
         runner = test_runner.TestRunner(quiet=True)
 
-        # Test with subprocess.run success
         mock_environ.get.return_value = "/bin/bash"
+
+        # Test with subprocess.run success
         mock_result = mock.MagicMock()
         mock_result.returncode = 0
         mock_subprocess_run.return_value = mock_result
@@ -286,7 +290,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         # Test with build_env and subprocess.run success
         mock_subprocess_run.reset_mock()
 
-        mock_environ.get.return_value = "/bin/sh"
         mock_result = mock.MagicMock()
         mock_result.returncode = 0
         mock_subprocess_run.return_value = mock_result
@@ -318,7 +321,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
         # Test with subprocess.run failure
         mock_subprocess_run.reset_mock()
 
-        mock_environ.get.return_value = "/bin/bash"
         mock_result = mock.MagicMock()
         mock_result.returncode = 1
         mock_result.stdout = "build stdout\n"
