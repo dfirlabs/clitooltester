@@ -165,6 +165,9 @@ class YAMLInputsDefinitionsFile:
                     element_definition.path = os.path.join(
                         input_definition.base_path, element.path
                     )
+                    if element.parameters:
+                        element_definition.parameters = element.parameters.copy()
+
                     yield element_definition
 
     def ReadFromFile(self, path):

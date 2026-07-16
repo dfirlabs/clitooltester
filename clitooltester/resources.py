@@ -114,7 +114,10 @@ class TestResult:
 
     Attributes:
       description (str): description.
+      end_time (int): test end time in nanoseconds.
       exit_code (int): exit code from the test command.
+      sequence_number (int): sequence number.
+      start_time (int): test start time in nanoseconds.
       stderr (str): standard error from the test command.
       stdout (str): standard output from the test command.
     """
@@ -123,6 +126,9 @@ class TestResult:
         """Initializes a test result."""
         super().__init__()
         self.description = None
+        self.end_time = 0
         self.exit_code = 0
+        self.sequence_number = 0
+        self.start_time = 0
         self.stderr = None
         self.stdout = None
