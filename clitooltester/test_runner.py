@@ -6,6 +6,7 @@ import re
 import shlex
 import shutil
 import subprocess
+import time
 
 from concurrent import futures
 
@@ -88,9 +89,12 @@ class TestRunner:
 
             arguments.extend(["-v", f"{path.parent!s}:/input:z"])
             test_description = f"{test_description:s} with input: '{test_input.name:s}'"
-            test_parameters = {
-                f"%{key:s}%": str(value) for key, value in test_input.parameters.items()
-            }
+            test_parameters.update(
+                {
+                    f"%{key:s}%": str(value)
+                    for key, value in test_input.parameters.items()
+                }
+            )
             test_parameters["%input%"] = f'"/input/{path.name:s}"'
 
         docker_definition = test_definition.docker
@@ -108,6 +112,9 @@ class TestRunner:
 
         arguments.extend(shlex.split(command))
 
+        test_result = resources.TestResult()
+        test_result.start_time = time.time_ns()
+
         subprocess_result = subprocess.run(
             arguments,
             capture_output=True,
@@ -115,8 +122,8 @@ class TestRunner:
             shell=False,
             text=True,
         )
-        test_result = resources.TestResult()
         test_result.description = test_description
+        test_result.end_time = time.time_ns()
         test_result.exit_code = subprocess_result.returncode
         test_result.stderr = subprocess_result.stderr
         test_result.stdout = subprocess_result.stdout
@@ -141,13 +148,16 @@ class TestRunner:
             raise ValueError("Invalid test definition - missing package configuration")
 
         test_description = f"{test_definition.name:s}"
-        test_parameters = {}
+        test_parameters = {"%package%": f'"{test_definition.package.path:s}"'}
 
         if test_input:
             test_description = f"{test_description:s} with input: '{test_input.name:s}'"
-            test_parameters = {
-                f"%{key:s}%": str(value) for key, value in test_input.parameters.items()
-            }
+            test_parameters.update(
+                {
+                    f"%{key:s}%": str(value)
+                    for key, value in test_input.parameters.items()
+                }
+            )
             test_parameters["%input%"] = f'"{test_input.path:s}"'
 
         command = self._SubstitutePlaceholders(test_definition.command, test_parameters)
@@ -161,15 +171,18 @@ class TestRunner:
 
         arguments = shlex.split(command)
 
+        test_result = resources.TestResult()
+        test_result.start_time = time.time_ns()
+
         subprocess_result = subprocess.run(
             arguments,
             capture_output=True,
             check=False,
-            shell=True,
+            shell=False,
             text=True,
         )
-        test_result = resources.TestResult()
         test_result.description = test_description
+        test_result.end_time = time.time_ns()
         test_result.exit_code = subprocess_result.returncode
         test_result.stderr = subprocess_result.stderr
         test_result.stdout = subprocess_result.stdout
@@ -364,33 +377,32 @@ class TestRunner:
         else:
             tasks = [(test_definition, None)]
 
-        if jobs <= 1:
-            results = []
-            for task in tasks:
-                test_runner = TestRunner(quiet=self._quiet, verbose=self._verbose)
-                test_result = test_runner.RunTest(*task)
-
-                results.append(test_result)
-
-                self._PrintTestResult(test_result)
-
-            return results
-
         results = [None] * len(tasks)
 
-        def _run_job(index, task):
+        def _run_job(task_index, task):
             test_runner = TestRunner(quiet=self._quiet, verbose=self._verbose)
-            return index, test_runner.RunTest(*task)
+            test_run = test_runner.RunTest(*task)
+            test_run.sequence_number = task_index
+            return test_run
 
-        with futures.ThreadPoolExecutor(max_workers=jobs) as executor:
-            future_instances = {
-                executor.submit(_run_job, index, task): (index, task)
-                for index, task in enumerate(tasks)
-            }
-            for future in futures.as_completed(future_instances):
-                index, test_result = future.result()
-                results[index] = test_result
+        if jobs <= 1:
+            for task_index, task in enumerate(tasks):
+                test_result = _run_job(task_index, task)
+
+                results[test_result.sequence_number] = test_result
 
                 self._PrintTestResult(test_result)
+        else:
+            with futures.ThreadPoolExecutor(max_workers=jobs) as executor:
+                future_instances = {
+                    executor.submit(_run_job, task_index, task): (task_index, task)
+                    for task_index, task in enumerate(tasks)
+                }
+                for future in futures.as_completed(future_instances):
+                    test_result = future.result()
+
+                    results[test_result.sequence_number] = test_result
+
+                    self._PrintTestResult(test_result)
 
         return results

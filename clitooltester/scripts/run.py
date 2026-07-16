@@ -4,6 +4,7 @@
 import argparse
 import sys
 
+from clitooltester import results_log
 from clitooltester import test_runner
 
 
@@ -25,20 +26,28 @@ def Main():
         help="path of the inputs configuration file.",
     )
     argument_parser.add_argument(
-        "-v",
-        "--verbose",
-        dest="verbose",
-        action="store_true",
-        default=False,
-        help="enable verbose output.",
-    )
-    argument_parser.add_argument(
         "-j",
         dest="jobs",
         action="store",
         type=int,
         default=1,
         help="number of parallel jobs, where 1 represent sequential.",
+    )
+    argument_parser.add_argument(
+        "-l",
+        "--log",
+        dest="log_file",
+        action="store",
+        default=None,
+        help="path to write test results log file.",
+    )
+    argument_parser.add_argument(
+        "-v",
+        "--verbose",
+        dest="verbose",
+        action="store_true",
+        default=False,
+        help="enable verbose output.",
     )
     argument_parser.add_argument(
         "configuration",
@@ -93,6 +102,10 @@ def Main():
 
     number_of_tests = len(test_results)
     number_of_failed_tests = sum(1 for result in test_results if result.exit_code != 0)
+
+    if options.log_file:
+        log_file = results_log.ResultsLog(options.log_file)
+        log_file.Write(test_results)
 
     print("\nTest results.\n")
 
