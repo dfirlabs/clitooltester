@@ -20,7 +20,7 @@ class TestRunner:
 
     _PLACEHOLDER_RE = re.compile(r"%[0-9A-Za-z_]+%")
 
-    def __init__(self, quiet=False, verbose=False):
+    def __init__(self, quiet=False, verbose=False, write_reference=False):
         """Initializes a command line tool test runner.
 
         Args:
@@ -28,10 +28,13 @@ class TestRunner:
               overrides verbose.
           verbose (Optional[bool]): value to indicate stdout and stderr should be
               printed on error.
+          write_reference (Optional[bool]): value to write standardized outputs
+              to the reference file.
         """
         super().__init__()
         self._quiet = quiet
         self._verbose = verbose
+        self._write_reference = write_reference
 
     def _NormalizeStdout(self, normalizer, stdout):
         """Normalizes stdout.
@@ -122,6 +125,14 @@ class TestRunner:
 
             # TODO: parse JSON validation and update test_result
 
+        # Write reference file if stdout_definition.reference_file is defined but doesn't exist
+        if stdout_definition and stdout_definition.reference_file and stdout:
+            if self._write_reference and not os.path.exists(stdout_definition.reference_file):
+                reference_dir = os.path.dirname(os.path.abspath(stdout_definition.reference_file))
+                os.makedirs(reference_dir, exist_ok=True)
+                with open(stdout_definition.reference_file, 'w', encoding='utf-8') as ref_file:
+                    ref_file.write(stdout)
+
         return True
 
     def _RunTestWithDocker(self, test_definition, test_input=None):
@@ -198,7 +209,7 @@ class TestRunner:
 
         stdout_definition = getattr(test_definition, "stdout", None)
         if stdout_definition:
-            self._ProcessStdout(test_definition, test_result)
+            self._ProcessStdout(stdout_definition, test_result)
 
         return test_result
 
@@ -261,7 +272,7 @@ class TestRunner:
 
         stdout_definition = getattr(test_definition, "stdout", None)
         if stdout_definition:
-            self._ProcessStdout(test_definition, test_result)
+            self._ProcessStdout(stdout_definition, test_result)
 
         return test_result
 
@@ -492,7 +503,7 @@ class TestRunner:
         results = [None] * len(tasks)
 
         def _run_job(task_index, task):
-            test_runner = TestRunner(quiet=self._quiet, verbose=self._verbose)
+            test_runner = TestRunner(quiet=self._quiet, verbose=self._verbose, write_reference=self._write_reference)
             test_run = test_runner.RunTest(*task)
             test_run.sequence_number = task_index
             return test_run

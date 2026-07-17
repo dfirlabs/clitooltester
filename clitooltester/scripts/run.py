@@ -27,6 +27,7 @@ def Main():
     )
     argument_parser.add_argument(
         "-j",
+        "--jobs",
         dest="jobs",
         action="store",
         type=int,
@@ -48,6 +49,14 @@ def Main():
         action="store_true",
         default=False,
         help="enable verbose output.",
+    )
+    argument_parser.add_argument(
+        "--write_reference",
+        "--write-reference",
+        dest="write_reference",
+        action="store_true",
+        default=False,
+        help="write normalized stdout to reference file if it does not exist.",
     )
     argument_parser.add_argument(
         "configuration",
@@ -72,6 +81,7 @@ def Main():
 
     runner = test_runner.TestRunner(
         verbose=options.verbose,
+        write_reference=options.write_reference,
     )
     try:
         test_definition = runner.ReadTestConfiguration(options.configuration)
