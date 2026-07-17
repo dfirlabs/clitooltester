@@ -51,9 +51,9 @@ def Main():
         help="enable verbose output.",
     )
     argument_parser.add_argument(
-        "--write_reference",
-        "--write-reference",
-        dest="write_reference",
+        "--write_references",
+        "--write-references",
+        dest="write_references",
         action="store_true",
         default=False,
         help="write normalized stdout to reference file if it does not exist.",
@@ -81,7 +81,7 @@ def Main():
 
     runner = test_runner.TestRunner(
         verbose=options.verbose,
-        write_reference=options.write_reference,
+        write_references=options.write_references,
     )
     try:
         test_definition = runner.ReadTestConfiguration(options.configuration)

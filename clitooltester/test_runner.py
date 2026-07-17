@@ -20,7 +20,7 @@ class TestRunner:
 
     _PLACEHOLDER_RE = re.compile(r"%[0-9A-Za-z_]+%")
 
-    def __init__(self, quiet=False, verbose=False, write_reference=False):
+    def __init__(self, quiet=False, verbose=False, write_references=False):
         """Initializes a command line tool test runner.
 
         Args:
@@ -28,13 +28,12 @@ class TestRunner:
               overrides verbose.
           verbose (Optional[bool]): value to indicate stdout and stderr should be
               printed on error.
-          write_reference (Optional[bool]): value to write standardized outputs
-              to the reference file.
+          write_references (Optional[bool]): value to indicate to write reference files.
         """
         super().__init__()
         self._quiet = quiet
         self._verbose = verbose
-        self._write_reference = write_reference
+        self._write_references = write_references
 
     def _NormalizeStdout(self, normalizer, stdout):
         """Normalizes stdout.
@@ -128,7 +127,7 @@ class TestRunner:
         # Write reference file if stdout_definition.reference_file is defined but does
         # not exist.
         if stdout_definition and stdout_definition.reference_file and stdout:
-            if self._write_reference and not os.path.exists(
+            if self._write_references and not os.path.exists(
                 stdout_definition.reference_file
             ):
                 reference_directory = os.path.dirname(
@@ -514,7 +513,7 @@ class TestRunner:
             test_runner = TestRunner(
                 quiet=self._quiet,
                 verbose=self._verbose,
-                write_reference=self._write_reference,
+                write_references=self._write_references,
             )
             test_run = test_runner.RunTest(*task)
             test_run.sequence_number = task_index
