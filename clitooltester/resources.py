@@ -143,6 +143,7 @@ class TestResult:
       start_time (int): test start time in nanoseconds.
       stderr (str): standard error from the test command.
       stdout (str): standard output from the test command.
+      success (bool): True if the test was successful.
     """
 
     def __init__(self):
@@ -155,3 +156,4 @@ class TestResult:
         self.start_time = 0
         self.stderr = None
         self.stdout = None
+        self.success = None

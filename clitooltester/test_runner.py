@@ -79,7 +79,7 @@ class TestRunner:
         padding_length = max(1, 72 - len(test_result.description))
         print(" " * padding_length, end="")
 
-        if test_result.exit_code == 0:
+        if test_result.success:
             print("\033[32mok\033[0m")
         else:
             print("\033[31mFAILED\033[0m")
@@ -132,7 +132,8 @@ class TestRunner:
             )
             if normalizer_process.returncode != 0:
                 # TODO: set normalization error in test_result
-                return False
+                test_result.success = False
+                return
 
             stdout = normalizer_process.stdout
 
@@ -147,6 +148,7 @@ class TestRunner:
                 reference_directory = os.path.dirname(os.path.abspath(reference_file))
                 os.makedirs(reference_directory, exist_ok=True)
 
+                # TODO: extract reference set of attributes
                 with open(reference_file, "w", encoding="utf-8") as file_object:
                     file_object.write(stdout)
 
@@ -157,12 +159,11 @@ class TestRunner:
                 stdout,
             )
             if validator_process.returncode != 0:
-                # TODO: set validation error in test_result
-                return False
+                # TODO: parse stdout and error if value_mismatches
+                test_result.success = False
+                return
 
             # TODO: parse JSON validation and update test_result
-
-        return True
 
     def _RunTestWithDocker(self, test_definition, test_input=None):
         """Runs a test with Docker.
@@ -235,6 +236,7 @@ class TestRunner:
         test_result.exit_code = subprocess_result.returncode
         test_result.stderr = subprocess_result.stderr
         test_result.stdout = subprocess_result.stdout
+        test_result.success = subprocess_result.returncode == 0
 
         if test_definition.stdout:
             self._ProcessStdout(test_definition, test_result, test_input=test_input)
@@ -297,6 +299,7 @@ class TestRunner:
         test_result.exit_code = subprocess_result.returncode
         test_result.stderr = subprocess_result.stderr
         test_result.stdout = subprocess_result.stdout
+        test_result.success = subprocess_result.returncode == 0
 
         if test_definition.stdout:
             self._ProcessStdout(test_definition, test_result, test_input=test_input)
