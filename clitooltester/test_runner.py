@@ -142,6 +142,14 @@ class TestRunner:
                 stdout_definition.reference_file, test_parameters
             )
 
+        if self._write_references and reference_file and stdout:
+            if not os.path.exists(reference_file):
+                reference_directory = os.path.dirname(os.path.abspath(reference_file))
+                os.makedirs(reference_directory, exist_ok=True)
+
+                with open(reference_file, "w", encoding="utf-8") as file_object:
+                    file_object.write(stdout)
+
         if stdout_definition.validator and reference_file and stdout:
             validator_process = self._ValidateStdout(
                 stdout_definition.validator,
@@ -153,14 +161,6 @@ class TestRunner:
                 return False
 
             # TODO: parse JSON validation and update test_result
-
-        if stdout_definition and reference_file and stdout:
-            if self._write_references and not os.path.exists(reference_file):
-                reference_directory = os.path.dirname(os.path.abspath(reference_file))
-                os.makedirs(reference_directory, exist_ok=True)
-
-                with open(reference_file, "w", encoding="utf-8") as file_object:
-                    file_object.write(stdout)
 
         return True
 
