@@ -125,13 +125,21 @@ class TestRunner:
 
             # TODO: parse JSON validation and update test_result
 
-        # Write reference file if stdout_definition.reference_file is defined but doesn't exist
+        # Write reference file if stdout_definition.reference_file is defined but does
+        # not exist.
         if stdout_definition and stdout_definition.reference_file and stdout:
-            if self._write_reference and not os.path.exists(stdout_definition.reference_file):
-                reference_dir = os.path.dirname(os.path.abspath(stdout_definition.reference_file))
-                os.makedirs(reference_dir, exist_ok=True)
-                with open(stdout_definition.reference_file, 'w', encoding='utf-8') as ref_file:
-                    ref_file.write(stdout)
+            if self._write_reference and not os.path.exists(
+                stdout_definition.reference_file
+            ):
+                reference_directory = os.path.dirname(
+                    os.path.abspath(stdout_definition.reference_file)
+                )
+                os.makedirs(reference_directory, exist_ok=True)
+
+                with open(
+                    stdout_definition.reference_file, "w", encoding="utf-8"
+                ) as file_object:
+                    file_object.write(stdout)
 
         return True
 
@@ -503,7 +511,11 @@ class TestRunner:
         results = [None] * len(tasks)
 
         def _run_job(task_index, task):
-            test_runner = TestRunner(quiet=self._quiet, verbose=self._verbose, write_reference=self._write_reference)
+            test_runner = TestRunner(
+                quiet=self._quiet,
+                verbose=self._verbose,
+                write_reference=self._write_reference,
+            )
             test_run = test_runner.RunTest(*task)
             test_run.sequence_number = task_index
             return test_run

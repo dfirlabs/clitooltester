@@ -26,9 +26,7 @@ class TestRunnerTest(test_lib.BaseTestCase):
             normalizer = os.path.join(temporary_directory, "normalizer.py")
             with open(normalizer, "w", encoding="utf-8") as file_object:
                 file_object.write(
-                    "import sys\n"
-                    "\n"
-                    "sys.stdout.write(sys.stdin.read().strip())\n"
+                    "import sys\n\nsys.stdout.write(sys.stdin.read().strip())\n"
                 )
 
             result = runner._NormalizeStdout(
