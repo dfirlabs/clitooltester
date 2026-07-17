@@ -45,12 +45,19 @@ class TestRunnerTest(test_lib.BaseTestCase):
         # Test without a normalize, validator and reference_file
         runner = test_runner.TestRunner(quiet=True)
 
-        stdout_definition = resources.StdoutDefinition()
+        package = resources.PackageDefinition()
+        package.path = "/home/user/pkg"
+
+        test_definition = resources.TestDefinition()
+        test_definition.name = "test"
+        test_definition.command = "ls %input%"
+        test_definition.package = package
+        test_definition.stdout = resources.StdoutDefinition()
 
         test_result = resources.TestResult()
         test_result.stdout = "some output"
 
-        runner._ProcessStdout(stdout_definition, test_result)
+        runner._ProcessStdout(test_definition, test_result, {})
 
         self.assertEqual(test_result.stdout, "some output")
 

@@ -44,6 +44,9 @@ class TestRunner:
 
         Returns:
           CompletedProcess: normalizer process object.
+
+        Raises:
+          RuntimeError: if normalizer script or binary does not exist.
         """
         if not os.path.isfile(normalizer):
             raise RuntimeError(f"Missing normalizer: {normalizer:s}")
@@ -86,21 +89,42 @@ class TestRunner:
             if self._verbose and test_result.stderr:
                 print(test_result.stderr)
 
-    def _ProcessStdout(self, stdout_definition, test_result):
+    def _ProcessStdout(self, test_definition, test_result, test_input=None):
         """Processes stdout.
 
         * Normalizes stdout if specified;
         * Compares against reference_file using validator if specified.
 
         Args:
-          stdout_definition (StdoutDefinition): test definition with reference
-              configuration.
+          test_definition (TestDefinition): test definition with Docker configuration.
           test_result (TestResult): test result to process.
+          test_input (Optional[InputDefinition]): input definition.
 
         Returns:
           bool: True if stdout was processed successfully.
+
+        Raises:
+          RuntimeError: if stdout definition is missing.
         """
+        if not test_definition.stdout:
+            raise RuntimeError("Missing stdout definition")
+
+        stdout_definition = test_definition.stdout
         stdout = test_result.stdout
+
+        test_parameters = {}
+        if test_input:
+            path = pathlib.Path(test_input.path)
+            if not path.is_absolute():
+                path = path.resolve()
+
+            test_parameters.update(
+                {
+                    f"%{key:s}%": str(value)
+                    for key, value in test_input.parameters.items()
+                }
+            )
+            test_parameters["%input%"] = test_input.name
 
         if stdout_definition.normalizer and stdout:
             normalizer_process = self._NormalizeStdout(
@@ -112,10 +136,16 @@ class TestRunner:
 
             stdout = normalizer_process.stdout
 
-        if stdout_definition.validator and stdout_definition.reference_file and stdout:
+        reference_file = None
+        if stdout_definition.reference_file:
+            reference_file = self._SubstitutePlaceholders(
+                stdout_definition.reference_file, test_parameters
+            )
+
+        if stdout_definition.validator and reference_file and stdout:
             validator_process = self._ValidateStdout(
                 stdout_definition.validator,
-                stdout_definition.reference_file,
+                reference_file,
                 stdout,
             )
             if validator_process.returncode != 0:
@@ -124,20 +154,12 @@ class TestRunner:
 
             # TODO: parse JSON validation and update test_result
 
-        # Write reference file if stdout_definition.reference_file is defined but does
-        # not exist.
-        if stdout_definition and stdout_definition.reference_file and stdout:
-            if self._write_references and not os.path.exists(
-                stdout_definition.reference_file
-            ):
-                reference_directory = os.path.dirname(
-                    os.path.abspath(stdout_definition.reference_file)
-                )
+        if stdout_definition and reference_file and stdout:
+            if self._write_references and not os.path.exists(reference_file):
+                reference_directory = os.path.dirname(os.path.abspath(reference_file))
                 os.makedirs(reference_directory, exist_ok=True)
 
-                with open(
-                    stdout_definition.reference_file, "w", encoding="utf-8"
-                ) as file_object:
+                with open(reference_file, "w", encoding="utf-8") as file_object:
                     file_object.write(stdout)
 
         return True
@@ -214,9 +236,8 @@ class TestRunner:
         test_result.stderr = subprocess_result.stderr
         test_result.stdout = subprocess_result.stdout
 
-        stdout_definition = getattr(test_definition, "stdout", None)
-        if stdout_definition:
-            self._ProcessStdout(stdout_definition, test_result)
+        if test_definition.stdout:
+            self._ProcessStdout(test_definition, test_result)
 
         return test_result
 
@@ -277,9 +298,8 @@ class TestRunner:
         test_result.stderr = subprocess_result.stderr
         test_result.stdout = subprocess_result.stdout
 
-        stdout_definition = getattr(test_definition, "stdout", None)
-        if stdout_definition:
-            self._ProcessStdout(stdout_definition, test_result)
+        if test_definition.stdout:
+            self._ProcessStdout(test_definition, test_result)
 
         return test_result
 
@@ -317,6 +337,10 @@ class TestRunner:
 
         Returns:
           CompletedProcess: validator process object.
+
+        Raises:
+          RuntimeError: if validator script or binary, or reference file does not
+              exist.
         """
         if not os.path.isfile(validator):
             raise RuntimeError(f"Missing validator: {validator:s}")
