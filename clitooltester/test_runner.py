@@ -237,7 +237,7 @@ class TestRunner:
         test_result.stdout = subprocess_result.stdout
 
         if test_definition.stdout:
-            self._ProcessStdout(test_definition, test_result)
+            self._ProcessStdout(test_definition, test_result, test_input=test_input)
 
         return test_result
 
@@ -299,7 +299,7 @@ class TestRunner:
         test_result.stdout = subprocess_result.stdout
 
         if test_definition.stdout:
-            self._ProcessStdout(test_definition, test_result)
+            self._ProcessStdout(test_definition, test_result, test_input=test_input)
 
         return test_result
 
