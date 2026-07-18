@@ -94,11 +94,13 @@ class StdoutDefinition:
     Attributes:
       normalizer (str): path to a normalization script or binary to normalize stdout
           before validation. The normalizer should read stdin and output to stdout.
-      reference_file (str): path to a file that contains normalized stdout to validate
-          against.
-      validator (str): path to a script or binary to validate stdout. The validator
-          should read stdin and take a reference file as argument. The output of the
-          validator should be JSON.
+      reference_file (str): path to a file that contains (canonicalized) stdout to
+          validate against.
+      reference_writer (str): path to a script or binary to write (normalized) stdout
+          to a reference file. The writer should read stdin and output to a file.
+      validator (str): path to a script or binary to validate (normalized) stdout. The
+          validator should read stdin and take a reference file as argument. The output
+          of the validator should be JSON.
     """
 
     def __init__(self):
@@ -106,6 +108,7 @@ class StdoutDefinition:
         super().__init__()
         self.normalizer = None
         self.reference_file = None
+        self.reference_writer = None
         self.validator = None
 
 
