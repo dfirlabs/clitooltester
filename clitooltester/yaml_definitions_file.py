@@ -295,6 +295,9 @@ class YAMLTestDefinitionFile:
         stdout_definition = resources.StdoutDefinition()
         stdout_definition.normalizer = yaml_stdout_definition.get("normalizer")
         stdout_definition.reference_file = yaml_stdout_definition.get("reference_file")
+        stdout_definition.reference_writer = yaml_stdout_definition.get(
+            "reference_writer"
+        )
         stdout_definition.validator = yaml_stdout_definition.get("validator")
 
         return stdout_definition
