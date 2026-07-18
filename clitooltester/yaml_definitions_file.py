@@ -195,8 +195,9 @@ class YAMLTestDefinitionFile:
       path: /usr/bin
     stdout:
       normalizer: scripts/normalize.py
-      validator: scripts/compare.py
       reference_file: expected/output.txt
+      reference_writer: scripts/writer.py
+      validator: scripts/compare.py
 
     Where:
     * description, optional description;
@@ -205,6 +206,11 @@ class YAMLTestDefinitionFile:
     * docker, Docker configuration.
     * package, package configuration.
     * stdout, stdout reference configuration.
+    * normalizer, optional path to a normalization script or binary to normalize stdout
+        before validation.
+    * reference_file, optional path to a file that contains stdout to validate against.
+    * reference_writer, path to a script or binary to write stdout to a reference file.
+    * validator, path to a script or binary to validate (normalized) stdout.
 
     Note that uniqueness of the name is not enforced.
     """
@@ -289,6 +295,9 @@ class YAMLTestDefinitionFile:
         stdout_definition = resources.StdoutDefinition()
         stdout_definition.normalizer = yaml_stdout_definition.get("normalizer")
         stdout_definition.reference_file = yaml_stdout_definition.get("reference_file")
+        stdout_definition.reference_writer = yaml_stdout_definition.get(
+            "reference_writer"
+        )
         stdout_definition.validator = yaml_stdout_definition.get("validator")
 
         return stdout_definition

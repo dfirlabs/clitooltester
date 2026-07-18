@@ -144,13 +144,11 @@ class TestRunner:
             )
 
         if self._write_references and reference_file and stdout:
-            if not os.path.exists(reference_file):
-                reference_directory = os.path.dirname(os.path.abspath(reference_file))
-                os.makedirs(reference_directory, exist_ok=True)
-
-                # TODO: extract reference set of attributes
-                with open(reference_file, "w", encoding="utf-8") as file_object:
-                    file_object.write(stdout)
+            if not self._WriteReferenceFile(
+                stdout_definition.reference_writer, reference_file, stdout
+            ):
+                test_result.success = False
+                return
 
         if stdout_definition.validator and reference_file and stdout:
             validator_process = self._ValidateStdout(
@@ -324,6 +322,48 @@ class TestRunner:
             command = command.replace(key, value)
 
         return command
+
+    def _WriteReferenceFile(
+        self,
+        reference_writer,
+        reference_file,
+        stdout,
+    ):
+        """Writes stdout to a reference file.
+
+        Args:
+          reference_writer (str): path to the reference file writer script or binary.
+          reference_file (str): path to the reference file.
+          stdout (str): the stdout to compare.
+
+        Returns:
+          bool: True if the file was successfully written.
+        """
+        reference_directory = os.path.dirname(os.path.abspath(reference_file))
+        os.makedirs(reference_directory, exist_ok=True)
+
+        if reference_writer:
+            if reference_writer.endswith(".py"):
+                arguments = [sys.executable, reference_writer, reference_file]
+            else:
+                arguments = [reference_writer, reference_file]
+
+            result = subprocess.run(
+                arguments,
+                capture_output=True,
+                check=False,
+                input=stdout,
+                shell=False,
+                text=True,
+            )
+            if result.returncode != 0:
+                return False
+
+        else:
+            with open(reference_file, "w", encoding="utf-8") as file_object:
+                file_object.write(stdout)
+
+        return True
 
     def _ValidateStdout(
         self,
