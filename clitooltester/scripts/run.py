@@ -27,6 +27,7 @@ def Main():
     )
     argument_parser.add_argument(
         "-j",
+        "--jobs",
         dest="jobs",
         action="store",
         type=int,
@@ -48,6 +49,14 @@ def Main():
         action="store_true",
         default=False,
         help="enable verbose output.",
+    )
+    argument_parser.add_argument(
+        "--write_references",
+        "--write-references",
+        dest="write_references",
+        action="store_true",
+        default=False,
+        help="write normalized stdout to reference file if it does not exist.",
     )
     argument_parser.add_argument(
         "configuration",
@@ -72,6 +81,7 @@ def Main():
 
     runner = test_runner.TestRunner(
         verbose=options.verbose,
+        write_references=options.write_references,
     )
     try:
         test_definition = runner.ReadTestConfiguration(options.configuration)
@@ -101,7 +111,7 @@ def Main():
         )
 
     number_of_tests = len(test_results)
-    number_of_failed_tests = sum(1 for result in test_results if result.exit_code != 0)
+    number_of_failed_tests = sum(1 for result in test_results if not result.success)
 
     if options.log_file:
         log_file = results_log.ResultsLog(options.log_file)

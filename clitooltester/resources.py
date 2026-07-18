@@ -88,6 +88,27 @@ class PackageDefinition:
         self.path = None
 
 
+class StdoutDefinition:
+    """Stdout definition.
+
+    Attributes:
+      normalizer (str): path to a normalization script or binary to normalize stdout
+          before validation. The normalizer should read stdin and output to stdout.
+      reference_file (str): path to a file that contains normalized stdout to validate
+          against.
+      validator (str): path to a script or binary to validate stdout. The validator
+          should read stdin and take a reference file as argument. The output of the
+          validator should be JSON.
+    """
+
+    def __init__(self):
+        """Initializes a stdout definition."""
+        super().__init__()
+        self.normalizer = None
+        self.reference_file = None
+        self.validator = None
+
+
 class TestDefinition:
     """Test definition.
 
@@ -98,6 +119,7 @@ class TestDefinition:
       docker (DockerDefinition): Optional Docker configuration.
       name (str): name that uniquely identifies the test.
       package (PackageDefinition): package definition.
+      stdout (StdoutDefinition): stdout reference definition.
     """
 
     def __init__(self):
@@ -107,6 +129,7 @@ class TestDefinition:
         self.docker = None
         self.name = None
         self.package = None
+        self.stdout = None
 
 
 class TestResult:
@@ -120,6 +143,7 @@ class TestResult:
       start_time (int): test start time in nanoseconds.
       stderr (str): standard error from the test command.
       stdout (str): standard output from the test command.
+      success (bool): True if the test was successful.
     """
 
     def __init__(self):
@@ -132,3 +156,4 @@ class TestResult:
         self.start_time = 0
         self.stderr = None
         self.stdout = None
+        self.success = None

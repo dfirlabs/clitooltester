@@ -193,6 +193,10 @@ class YAMLTestDefinitionFile:
     command: log2timeline.py %input%
     package:
       path: /usr/bin
+    stdout:
+      normalizer: scripts/normalize.py
+      validator: scripts/compare.py
+      reference_file: expected/output.txt
 
     Where:
     * description, optional description;
@@ -200,11 +204,21 @@ class YAMLTestDefinitionFile:
     * command, with arguments, with can consist of placeholder values, such as: %input%.
     * docker, Docker configuration.
     * package, package configuration.
+    * stdout, stdout reference configuration.
 
     Note that uniqueness of the name is not enforced.
     """
 
-    _SUPPORTED_KEYS = frozenset(["command", "description", "docker", "name", "package"])
+    _SUPPORTED_KEYS = frozenset(
+        [
+            "command",
+            "description",
+            "docker",
+            "name",
+            "package",
+            "stdout",
+        ]
+    )
 
     def _ReadDockerDefinition(self, yaml_docker_definition):
         """Reads a Docker definition from a dictionary.
@@ -257,6 +271,28 @@ class YAMLTestDefinitionFile:
 
         return package_definition
 
+    def _ReadStdoutDefinition(self, yaml_stdout_definition):
+        """Reads a stdout definition from a dictionary.
+
+        Args:
+          yaml_stdout_definition (dict[str, object]): YAML stdout definition values.
+
+        Returns:
+          StdoutDefinition: stdout definition.
+
+        Raises:
+          RuntimeError: if the format of the stdout definition is not set or incorrect.
+        """
+        if not yaml_stdout_definition:
+            raise RuntimeError("Missing stdout definition values.")
+
+        stdout_definition = resources.StdoutDefinition()
+        stdout_definition.normalizer = yaml_stdout_definition.get("normalizer")
+        stdout_definition.reference_file = yaml_stdout_definition.get("reference_file")
+        stdout_definition.validator = yaml_stdout_definition.get("validator")
+
+        return stdout_definition
+
     def _ReadTestDefinition(self, yaml_test_definition):
         """Reads a test definition from a dictionary.
 
@@ -294,6 +330,10 @@ class YAMLTestDefinitionFile:
         test_definition.command = command
         test_definition.description = yaml_test_definition.get("description")
         test_definition.name = name
+
+        stdout_definition = yaml_test_definition.get("stdout")
+        if stdout_definition:
+            test_definition.stdout = self._ReadStdoutDefinition(stdout_definition)
 
         if docker_definition:
             test_definition.docker = self._ReadDockerDefinition(docker_definition)

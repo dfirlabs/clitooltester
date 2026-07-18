@@ -5,7 +5,6 @@ import os
 import tempfile
 import unittest
 
-from contextlib import suppress
 from unittest import mock
 
 from clitooltester import resources
@@ -18,6 +17,49 @@ class TestRunnerTest(test_lib.BaseTestCase):
     """Tests the command line tool test runner."""
 
     # pylint: disable=protected-access
+
+    def testNormalizeStdout(self):
+        """Tests _NormalizeStdout function."""
+        runner = test_runner.TestRunner(quiet=True)
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            normalizer = os.path.join(temporary_directory, "normalizer.py")
+            with open(normalizer, "w", encoding="utf-8") as file_object:
+                file_object.write(
+                    "import sys\n\nsys.stdout.write(sys.stdin.read().strip())\n"
+                )
+
+            result = runner._NormalizeStdout(
+                normalizer,
+                "hello world\n",
+            )
+            self.assertEqual(result.returncode, 0)
+            self.assertEqual(result.stdout, "hello world")
+
+        # Test with nonexistent normalization script
+        with self.assertRaises(RuntimeError):
+            runner._NormalizeStdout("/nonexistent/script.py", "output")
+
+    def testProcessStdout(self):
+        """Tests _ProcessStdout function."""
+        # Test without a normalize, validator and reference_file
+        runner = test_runner.TestRunner(quiet=True)
+
+        package = resources.PackageDefinition()
+        package.path = "/home/user/pkg"
+
+        test_definition = resources.TestDefinition()
+        test_definition.name = "test"
+        test_definition.command = "ls %input%"
+        test_definition.package = package
+        test_definition.stdout = resources.StdoutDefinition()
+
+        test_result = resources.TestResult()
+        test_result.stdout = "some output"
+
+        runner._ProcessStdout(test_definition, test_result, {})
+
+        self.assertEqual(test_result.stdout, "some output")
 
     @mock.patch("clitooltester.test_runner.subprocess.run")
     @mock.patch("clitooltester.test_runner.shutil.which")
@@ -264,6 +306,8 @@ class TestRunnerTest(test_lib.BaseTestCase):
         result = runner._SubstitutePlaceholders(command, test_values)
         self.assertEqual(result, "/path and /path")
 
+    # TODO: add tests _ValidateStdout
+
     @mock.patch("clitooltester.test_runner.subprocess.run")
     @mock.patch("clitooltester.test_runner.os.environ")
     def testBuildPackage(self, mock_environ, mock_subprocess_run):
@@ -440,18 +484,13 @@ class TestRunnerTest(test_lib.BaseTestCase):
         self.assertIsNotNone(result.package)
 
         # Test with missing definitions
-        _, test_file_path = tempfile.mkstemp(suffix=".yaml")
-
-        try:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            test_file_path = os.path.join(temporary_directory, "test.yaml")
             with open(test_file_path, "w", encoding="utf-8") as file_object:
                 file_object.write("---\n")
 
             with self.assertRaises(RuntimeError):
                 runner.ReadTestConfiguration(test_file_path)
-
-        finally:
-            with suppress(PermissionError):
-                os.remove(test_file_path)
 
         # Test with multiple definitions
         yaml_content = "\n".join(
@@ -469,32 +508,22 @@ class TestRunnerTest(test_lib.BaseTestCase):
                 "",
             ]
         )
-        _, test_file_path = tempfile.mkstemp(suffix=".yaml")
-
-        try:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            test_file_path = os.path.join(temporary_directory, "test.yaml")
             with open(test_file_path, "w", encoding="utf-8") as file_object:
                 file_object.write(yaml_content)
 
             with self.assertRaises(RuntimeError):
                 runner.ReadTestConfiguration(test_file_path)
 
-        finally:
-            with suppress(PermissionError):
-                os.remove(test_file_path)
-
         # Test with empty file
-        _, test_file_path = tempfile.mkstemp(suffix=".yaml")
-
-        try:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            test_file_path = os.path.join(temporary_directory, "test.yaml")
             with open(test_file_path, "w", encoding="utf-8") as file_object:
                 _ = file_object
 
             with self.assertRaises(RuntimeError):
                 runner.ReadTestConfiguration(test_file_path)
-
-        finally:
-            with suppress(PermissionError):
-                os.remove(test_file_path)
 
     @mock.patch("clitooltester.test_runner.subprocess.run")
     @mock.patch("clitooltester.test_runner.shutil.which")

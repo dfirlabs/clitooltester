@@ -6,6 +6,7 @@ import re
 import shlex
 import shutil
 import subprocess
+import sys
 import time
 
 from concurrent import futures
@@ -19,7 +20,7 @@ class TestRunner:
 
     _PLACEHOLDER_RE = re.compile(r"%[0-9A-Za-z_]+%")
 
-    def __init__(self, quiet=False, verbose=False):
+    def __init__(self, quiet=False, verbose=False, write_references=False):
         """Initializes a command line tool test runner.
 
         Args:
@@ -27,10 +28,42 @@ class TestRunner:
               overrides verbose.
           verbose (Optional[bool]): value to indicate stdout and stderr should be
               printed on error.
+          write_references (Optional[bool]): value to indicate to write reference files.
         """
         super().__init__()
         self._quiet = quiet
         self._verbose = verbose
+        self._write_references = write_references
+
+    def _NormalizeStdout(self, normalizer, stdout):
+        """Normalizes stdout.
+
+        Args:
+          normalizer (str): path to the normalization script or binary.
+          stdout (str): stdout to normalize.
+
+        Returns:
+          CompletedProcess: normalizer process object.
+
+        Raises:
+          RuntimeError: if normalizer script or binary does not exist.
+        """
+        if not os.path.isfile(normalizer):
+            raise RuntimeError(f"Missing normalizer: {normalizer:s}")
+
+        if normalizer.endswith(".py"):
+            arguments = [sys.executable, normalizer]
+        else:
+            arguments = [normalizer]
+
+        return subprocess.run(
+            arguments,
+            capture_output=True,
+            check=False,
+            input=stdout,
+            shell=False,
+            text=True,
+        )
 
     def _PrintTestResult(self, test_result):
         """Prints a test result.
@@ -46,7 +79,7 @@ class TestRunner:
         padding_length = max(1, 72 - len(test_result.description))
         print(" " * padding_length, end="")
 
-        if test_result.exit_code == 0:
+        if test_result.success:
             print("\033[32mok\033[0m")
         else:
             print("\033[31mFAILED\033[0m")
@@ -55,6 +88,82 @@ class TestRunner:
                 print(test_result.stdout)
             if self._verbose and test_result.stderr:
                 print(test_result.stderr)
+
+    def _ProcessStdout(self, test_definition, test_result, test_input=None):
+        """Processes stdout.
+
+        * Normalizes stdout if specified;
+        * Compares against reference_file using validator if specified.
+
+        Args:
+          test_definition (TestDefinition): test definition with Docker configuration.
+          test_result (TestResult): test result to process.
+          test_input (Optional[InputDefinition]): input definition.
+
+        Returns:
+          bool: True if stdout was processed successfully.
+
+        Raises:
+          RuntimeError: if stdout definition is missing.
+        """
+        if not test_definition.stdout:
+            raise RuntimeError("Missing stdout definition")
+
+        stdout_definition = test_definition.stdout
+        stdout = test_result.stdout
+
+        test_parameters = {}
+        if test_input:
+            path = pathlib.Path(test_input.path)
+            if not path.is_absolute():
+                path = path.resolve()
+
+            test_parameters.update(
+                {
+                    f"%{key:s}%": str(value)
+                    for key, value in test_input.parameters.items()
+                }
+            )
+            test_parameters["%input%"] = test_input.name
+
+        if stdout_definition.normalizer and stdout:
+            normalizer_process = self._NormalizeStdout(
+                stdout_definition.normalizer, stdout
+            )
+            if normalizer_process.returncode != 0:
+                # TODO: set normalization error in test_result
+                test_result.success = False
+                return
+
+            stdout = normalizer_process.stdout
+
+        reference_file = None
+        if stdout_definition.reference_file:
+            reference_file = self._SubstitutePlaceholders(
+                stdout_definition.reference_file, test_parameters
+            )
+
+        if self._write_references and reference_file and stdout:
+            if not os.path.exists(reference_file):
+                reference_directory = os.path.dirname(os.path.abspath(reference_file))
+                os.makedirs(reference_directory, exist_ok=True)
+
+                # TODO: extract reference set of attributes
+                with open(reference_file, "w", encoding="utf-8") as file_object:
+                    file_object.write(stdout)
+
+        if stdout_definition.validator and reference_file and stdout:
+            validator_process = self._ValidateStdout(
+                stdout_definition.validator,
+                reference_file,
+                stdout,
+            )
+            if validator_process.returncode != 0:
+                # TODO: parse stdout and error if value_mismatches
+                test_result.success = False
+                return
+
+            # TODO: parse JSON validation and update test_result
 
     def _RunTestWithDocker(self, test_definition, test_input=None):
         """Runs a test with Docker.
@@ -127,6 +236,10 @@ class TestRunner:
         test_result.exit_code = subprocess_result.returncode
         test_result.stderr = subprocess_result.stderr
         test_result.stdout = subprocess_result.stdout
+        test_result.success = subprocess_result.returncode == 0
+
+        if test_definition.stdout:
+            self._ProcessStdout(test_definition, test_result, test_input=test_input)
 
         return test_result
 
@@ -186,6 +299,10 @@ class TestRunner:
         test_result.exit_code = subprocess_result.returncode
         test_result.stderr = subprocess_result.stderr
         test_result.stdout = subprocess_result.stdout
+        test_result.success = subprocess_result.returncode == 0
+
+        if test_definition.stdout:
+            self._ProcessStdout(test_definition, test_result, test_input=test_input)
 
         return test_result
 
@@ -207,6 +324,46 @@ class TestRunner:
             command = command.replace(key, value)
 
         return command
+
+    def _ValidateStdout(
+        self,
+        validator,
+        reference_file,
+        stdout,
+    ):
+        """Validates stdout against a reference file.
+
+        Args:
+          validator (str): path to the validation script or binary.
+          reference_file (str): path to the reference file.
+          stdout (str): the stdout to compare.
+
+        Returns:
+          CompletedProcess: validator process object.
+
+        Raises:
+          RuntimeError: if validator script or binary, or reference file does not
+              exist.
+        """
+        if not os.path.isfile(validator):
+            raise RuntimeError(f"Missing validator: {validator:s}")
+
+        if not os.path.isfile(reference_file):
+            raise RuntimeError(f"Missing reference file: {reference_file:s}")
+
+        if validator.endswith(".py"):
+            arguments = [sys.executable, validator, reference_file]
+        else:
+            arguments = [validator, reference_file]
+
+        return subprocess.run(
+            arguments,
+            capture_output=True,
+            check=False,
+            input=stdout,
+            shell=False,
+            text=True,
+        )
 
     def BuildPackage(self, test_definition):
         """Builds a package before running tests.
@@ -380,7 +537,11 @@ class TestRunner:
         results = [None] * len(tasks)
 
         def _run_job(task_index, task):
-            test_runner = TestRunner(quiet=self._quiet, verbose=self._verbose)
+            test_runner = TestRunner(
+                quiet=self._quiet,
+                verbose=self._verbose,
+                write_references=self._write_references,
+            )
             test_run = test_runner.RunTest(*task)
             test_run.sequence_number = task_index
             return test_run
