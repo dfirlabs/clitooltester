@@ -131,7 +131,9 @@ class TestRunner:
                 stdout_definition.normalizer, stdout
             )
             if normalizer_process.returncode != 0:
-                # TODO: set normalization error in test_result
+                test_result.exit_code = normalizer_process.returncode
+                test_result.stderr = normalizer_process.stderr
+                test_result.stdout = normalizer_process.stdout
                 test_result.success = False
                 return
 
@@ -150,14 +152,16 @@ class TestRunner:
                 test_result.success = False
                 return
 
-        if stdout_definition.validator and reference_file and stdout:
+        elif stdout_definition.validator and reference_file and stdout:
             validator_process = self._ValidateStdout(
                 stdout_definition.validator,
                 reference_file,
                 stdout,
             )
             if validator_process.returncode != 0:
-                # TODO: parse stdout and error if value_mismatches
+                test_result.exit_code = validator_process.returncode
+                test_result.stderr = validator_process.stderr
+                test_result.stdout = validator_process.stdout
                 test_result.success = False
                 return
 
