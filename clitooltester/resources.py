@@ -8,7 +8,6 @@ class DockerDefinition:
       command (str): command to run inside the Docker container.
       dockerfile (str): path to a Dockerfile for building the Docker image.
       tag (str): Docker image tag.
-      volumes (list[DockerVolume]): volume mappings between host and container.
     """
 
     def __init__(self):
@@ -17,22 +16,6 @@ class DockerDefinition:
         self.command = None
         self.dockerfile = None
         self.tag = None
-        self.volumes = []
-
-
-class DockerVolume:
-    """Docker volume mapping.
-
-    Attributes:
-      docker_path (str): path inside the Docker container.
-      host_path (str): path on the host machine.
-    """
-
-    def __init__(self):
-        """Initializes a Docker volume."""
-        super().__init__()
-        self.docker_path = None
-        self.host_path = None
 
 
 class InputDefinition:
@@ -120,6 +103,8 @@ class TestDefinition:
     Attributes:
       command (str): command with arguments.
       docker (DockerDefinition): Optional Docker configuration.
+      mount (bool): Value to indicate the input should be mounted before running the
+          test command.
       name (str): name that uniquely identifies the test.
       package (PackageDefinition): package definition.
       stdout (StdoutDefinition): stdout reference definition.
@@ -130,6 +115,7 @@ class TestDefinition:
         super().__init__()
         self.command = None
         self.docker = None
+        self.mount = False
         self.name = None
         self.package = None
         self.stdout = None

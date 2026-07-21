@@ -191,6 +191,7 @@ class YAMLTestDefinitionFile:
     name: plaso_log2timeline
     description: Run log2timeline.py with input
     command: log2timeline.py %input%
+    mount:
     package:
       path: /usr/bin
     stdout:
@@ -203,6 +204,7 @@ class YAMLTestDefinitionFile:
     * description, optional description;
     * name, that uniquely identifies the test;
     * command, with arguments, with can consist of placeholder values, such as: %input%.
+    * mount, configuration to mount %input%.
     * docker, Docker configuration.
     * package, package configuration.
     * stdout, stdout reference configuration.
@@ -220,6 +222,7 @@ class YAMLTestDefinitionFile:
             "command",
             "description",
             "docker",
+            "mount",
             "name",
             "package",
             "stdout",
@@ -338,6 +341,7 @@ class YAMLTestDefinitionFile:
         test_definition = resources.TestDefinition()
         test_definition.command = command
         test_definition.description = yaml_test_definition.get("description")
+        test_definition.mount = "mount" in yaml_test_definition
         test_definition.name = name
 
         stdout_definition = yaml_test_definition.get("stdout")
