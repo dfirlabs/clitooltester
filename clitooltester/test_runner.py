@@ -20,9 +20,6 @@ class TestRunner:
 
     _PLACEHOLDER_RE = re.compile(r"%[0-9A-Za-z_]+%")
 
-    # TODO: allow to set mount point in configuration
-    _MOUNT_POINT = "/mnt/clitooltester"
-
     def __init__(self, quiet=False, verbose=False, write_references=False):
         """Initializes a command line tool test runner.
 
@@ -35,6 +32,8 @@ class TestRunner:
         """
         super().__init__()
         self._is_posix = os.name == "posix"
+        # TODO: allow to set mount point in configuration
+        self._mount_point = "/mnt/clitooltester"
         self._quiet = quiet
         self._verbose = verbose
         self._write_references = write_references
@@ -49,25 +48,43 @@ class TestRunner:
           RuntimeError: if the sudo or mount binary does not exist or the test input
               could not be mounted.
         """
-        sudo_path = shutil.which("sudo")
-        if not sudo_path:
-            raise RuntimeError("Unable to determine location of sudo binary")
-
-        # TODO: add support for "hdiutil mount %input"
         # TODO: add support for "Mount-VHD -Path %input%"
 
-        mount_path = shutil.which("mount")
-        if not mount_path:
-            raise RuntimeError("Unable to determine location of mount binary")
+        arguments = []
 
-        arguments = [
-            sudo_path,
-            mount_path,
-            "-o",
-            "ro,loop",
-            path,
-            self._MOUNT_POINT,
-        ]
+        hdiutil_path = shutil.which("hdiutil")
+        if hdiutil_path:
+            arguments = [
+                hdiutil_path,
+                "attach",
+                "-nobrowse",
+                "-readonly",
+                "-mountroot",
+                self._mount_point,
+                path,
+            ]
+
+        if not arguments:
+            sudo_path = shutil.which("sudo")
+            if not sudo_path:
+                raise RuntimeError("Unable to determine location of sudo binary")
+
+            mount_path = shutil.which("mount")
+            if not mount_path:
+                raise RuntimeError("Unable to determine location of mount binary")
+
+            arguments = [
+                sudo_path,
+                mount_path,
+                "-o",
+                "ro,loop",
+                path,
+                self._mount_point,
+            ]
+
+        if not arguments:
+            raise RuntimeError("Unable to determine how to mount input")
+
         result = subprocess.run(
             arguments,
             capture_output=True,
@@ -393,18 +410,31 @@ class TestRunner:
           RuntimeError: if the sudo or umount binary does not exist or the test input
               could not be unmounted.
         """
-        # TODO: add support for "hdiutil detach %input"
         # TODO: add support for "Dismount-VHD -Path %input%"
 
-        sudo_path = shutil.which("sudo")
-        if not sudo_path:
-            raise RuntimeError("Unable to determine location of sudo binary")
+        arguments = []
 
-        umount_path = shutil.which("umount")
-        if not umount_path:
-            raise RuntimeError("Unable to determine location of umount binary")
+        hdiutil_path = shutil.which("hdiutil")
+        if hdiutil_path:
+            arguments = [
+                hdiutil_path,
+                "detach",
+                self._mount_point,
+            ]
 
-        arguments = [sudo_path, umount_path, self._MOUNT_POINT]
+        if not arguments:
+            sudo_path = shutil.which("sudo")
+            if not sudo_path:
+                raise RuntimeError("Unable to determine location of sudo binary")
+
+            umount_path = shutil.which("umount")
+            if not umount_path:
+                raise RuntimeError("Unable to determine location of umount binary")
+
+            arguments = [sudo_path, umount_path, self._mount_point]
+
+        if not arguments:
+            raise RuntimeError("Unable to determine how to unmount input")
 
         try:
             subprocess.run(
@@ -672,8 +702,8 @@ class TestRunner:
             if jobs > 1:
                 raise RuntimeError("parallel jobs with mount currently not supported")
 
-            if not os.path.isdir(self._MOUNT_POINT):
-                raise RuntimeError("Missing mount point: '{self._MOUNT_POINT:s}'")
+            if not os.path.isdir(self._mount_point):
+                raise RuntimeError("Missing mount point: '{self._mount_point:s}'")
 
         if test_inputs:
             tasks = [(test_definition, test_input) for test_input in test_inputs]
