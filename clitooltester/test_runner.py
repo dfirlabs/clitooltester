@@ -90,13 +90,13 @@ class TestRunner:
         Raises:
           RuntimeError: if normalizer script or binary does not exist.
         """
-        if not os.path.isfile(normalizer):
+        arguments = shlex.split(normalizer)
+
+        if not os.path.isfile(arguments[0]):
             raise RuntimeError(f"Missing normalizer: {normalizer:s}")
 
-        if normalizer.endswith(".py"):
-            arguments = [sys.executable, normalizer]
-        else:
-            arguments = [normalizer]
+        if arguments[0].endswith(".py"):
+            arguments.insert(0, sys.executable)
 
         return subprocess.run(
             arguments,
@@ -478,16 +478,18 @@ class TestRunner:
           RuntimeError: if validator script or binary, or reference file does not
               exist.
         """
-        if not os.path.isfile(validator):
+        arguments = shlex.split(validator)
+
+        if not os.path.isfile(arguments[0]):
             raise RuntimeError(f"Missing validator: {validator:s}")
+
+        if arguments[0].endswith(".py"):
+            arguments.insert(0, sys.executable)
 
         if not os.path.isfile(reference_file):
             raise RuntimeError(f"Missing reference file: {reference_file:s}")
 
-        if validator.endswith(".py"):
-            arguments = [sys.executable, validator, reference_file]
-        else:
-            arguments = [validator, reference_file]
+        arguments.append(reference_file)
 
         return subprocess.run(
             arguments,
