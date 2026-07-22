@@ -34,6 +34,7 @@ class TestRunner:
           write_references (Optional[bool]): value to indicate to write reference files.
         """
         super().__init__()
+        self._is_posix = os.name == 'posix'
         self._quiet = quiet
         self._verbose = verbose
         self._write_references = write_references
@@ -90,9 +91,7 @@ class TestRunner:
         Raises:
           RuntimeError: if normalizer script or binary does not exist.
         """
-        arguments = shlex.split(normalizer)
-
-        print("A:", arguments)
+        arguments = shlex.split(normalizer, posix=self._is_posix)
 
         if not os.path.isfile(arguments[0]):
             raise RuntimeError(f"Missing normalizer: {normalizer:s}")
@@ -270,7 +269,7 @@ class TestRunner:
                 f"Command contains unresolved placeholders: {placeholders:s}"
             )
 
-        arguments.extend(shlex.split(command))
+        arguments.extend(shlex.split(command, posix=self._is_posix))
 
         test_result = resources.TestResult()
         test_result.start_time = time.time_ns()
@@ -341,7 +340,7 @@ class TestRunner:
                 f"Command contains unresolved placeholders: {placeholders:s}"
             )
 
-        arguments = shlex.split(command)
+        arguments = shlex.split(command, posix=self._is_posix)
 
         test_result = resources.TestResult()
         test_result.start_time = time.time_ns()
@@ -480,7 +479,7 @@ class TestRunner:
           RuntimeError: if validator script or binary, or reference file does not
               exist.
         """
-        arguments = shlex.split(validator)
+        arguments = shlex.split(validator, posix=self._is_posix)
 
         if not os.path.isfile(arguments[0]):
             raise RuntimeError(f"Missing validator: {validator:s}")
@@ -535,7 +534,7 @@ class TestRunner:
                 f"Command contains unresolved placeholders: {placeholders:s}"
             )
 
-        arguments.extend(shlex.split(command))
+        arguments.extend(shlex.split(command, posix=self._is_posix))
 
         result = subprocess.run(
             arguments,
