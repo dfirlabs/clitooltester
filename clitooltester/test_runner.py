@@ -34,7 +34,7 @@ class TestRunner:
           write_references (Optional[bool]): value to indicate to write reference files.
         """
         super().__init__()
-        self._is_posix = os.name == 'posix'
+        self._is_posix = os.name == "posix"
         self._quiet = quiet
         self._verbose = verbose
         self._write_references = write_references
