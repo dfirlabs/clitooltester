@@ -256,7 +256,7 @@ class TestRunner:
 
             if test_definition.mount:
                 self._MountInput(str(path))
-                volume_path = "/mnt/clitooltester"
+                volume_path = self._mount_point
             else:
                 volume_path = f"{path.parent!s}"
 
@@ -327,11 +327,12 @@ class TestRunner:
           RuntimeError: if the command contains unresolved placeholders.
           ValueError: if the package configuration is missing.
         """
-        if not test_definition.package:
-            raise ValueError("Invalid test definition - missing package configuration")
-
         test_description = f"{test_definition.name:s}"
-        test_parameters = {"%package%": f'"{test_definition.package.path:s}"'}
+        test_parameters = {}
+
+        package_path = getattr(test_definition.package, "path", None)
+        if package_path:
+            test_parameters["%package%"] = f'"{package_path:s}"'
 
         if test_input:
             test_description = f"{test_description:s} with input: '{test_input.name:s}'"
@@ -344,7 +345,7 @@ class TestRunner:
             if test_definition.mount:
                 self._MountInput(test_input.path)
 
-                test_parameters["%mountpoint%"] = "/mnt/clitooltester"
+                test_parameters["%mountpoint%"] = self._mount_point
             else:
                 test_parameters["%input%"] = f'"{test_input.path:s}"'
 
@@ -675,9 +676,6 @@ class TestRunner:
 
         Returns:
           TestResult: test result.
-
-        Raises:
-          ValueError: if the package configuration is missing.
         """
         if test_definition.docker:
             return self._RunTestWithDocker(test_definition, test_input=test_input)
