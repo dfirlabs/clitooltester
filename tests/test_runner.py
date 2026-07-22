@@ -114,7 +114,11 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_subprocess_run.assert_called_once()
         call_args = mock_subprocess_run.call_args[0][0]
         self.assertIn("-v", call_args)
-        self.assertIn("/input/data.bin", call_args)
+
+        if os.name == "posix":
+            self.assertIn("/input/data.bin", call_args)
+        else:
+            self.assertIn('"/input/data.bin"', call_args)
 
         # Test with input set and subprocess.run success
         mock_subprocess_run.reset_mock()
@@ -225,7 +229,11 @@ class TestRunnerTest(test_lib.BaseTestCase):
 
         mock_subprocess_run.assert_called_once()
         call_args = mock_subprocess_run.call_args[0][0]
-        self.assertIn("/data/file.bin", call_args)
+
+        if os.name == "posix":
+            self.assertIn("/data/file.bin", call_args)
+        else:
+            self.assertIn('"/data/file.bin"', call_args)
 
         # TODO: Test with input set and subprocess.run success
 
