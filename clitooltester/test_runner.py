@@ -92,6 +92,8 @@ class TestRunner:
         """
         arguments = shlex.split(normalizer)
 
+        print("A:", arguments)
+
         if not os.path.isfile(arguments[0]):
             raise RuntimeError(f"Missing normalizer: {normalizer:s}")
 
