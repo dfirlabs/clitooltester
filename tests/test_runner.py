@@ -147,7 +147,11 @@ class TestRunnerTest(test_lib.BaseTestCase):
         mock_subprocess_run.assert_called_once()
         call_args = mock_subprocess_run.call_args[0][0]
         self.assertIn("-v", call_args)
-        self.assertIn("/input/ext2.raw", call_args)
+
+        if os.name == "posix":
+            self.assertIn("/input/ext2.raw", call_args)
+        else:
+            self.assertIn('"/input/ext2.raw"', call_args)
 
         # Test with missing configuration
         mock_subprocess_run.reset_mock()
