@@ -417,6 +417,7 @@ class TestRunner:
 
         hdiutil_path = shutil.which("hdiutil")
         if hdiutil_path:
+            # TODO: detach each subdirectory under self._mount_point individually.
             arguments = [
                 hdiutil_path,
                 "detach",
