@@ -276,6 +276,7 @@ class YAMLTestDefinitionFile:
         package_definition = resources.PackageDefinition()
         package_definition.build = yaml_package_definition.get("build")
         package_definition.build_env = yaml_package_definition.get("build_env")
+        package_definition.env = yaml_package_definition.get("env")
         package_definition.path = path
 
         return package_definition
@@ -335,8 +336,8 @@ class YAMLTestDefinitionFile:
 
         docker_definition = yaml_test_definition.get("docker")
         package_definition = yaml_test_definition.get("package")
-        if not docker_definition and not package_definition:
-            raise RuntimeError("Invalid test definition missing docker and package.")
+        if docker_definition and package_definition:
+            raise RuntimeError("Invalid test definition docker and package both set.")
 
         test_definition = resources.TestDefinition()
         test_definition.command = command

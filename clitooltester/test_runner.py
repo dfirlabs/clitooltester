@@ -371,6 +371,7 @@ class TestRunner:
             arguments,
             capture_output=True,
             check=False,
+            env=test_definition.package.env,
             shell=False,
             text=True,
         )
@@ -751,7 +752,7 @@ class TestRunner:
                 raise RuntimeError("parallel jobs with mount currently not supported")
 
             if not os.path.isdir(self._mount_point):
-                raise RuntimeError("Missing mount point: '{self._mount_point:s}'")
+                raise RuntimeError(f"Missing mount point: '{self._mount_point:s}'")
 
         if test_inputs:
             tasks = [(test_definition, test_input) for test_input in test_inputs]

@@ -60,6 +60,8 @@ class PackageDefinition:
 
     Attributes:
       build (str): command(s) to build the package.
+      build_env (dict[str, str]): build environment variables.
+      env (dict[str, str]): environment variables.
       path (str): location of the package.
     """
 
@@ -68,6 +70,7 @@ class PackageDefinition:
         super().__init__()
         self.build = None
         self.build_env = None
+        self.env = None
         self.path = None
 
 
