@@ -134,6 +134,8 @@ class YAMLTestDefinitionFileTest(test_lib.BaseTestCase):
             test_yaml = {
                 "name": "dfimagetools_recursive_hasher",
                 "command": "%package%/dfimagetools/scripts/recursive_hasher.py %input%",
+                "docker": {"tag": "clitooltester/bogus"},
+                "package": {"path": "/home/user/dfimagetools"},
             }
             test_definitions_file._ReadTestDefinition(test_yaml)
 

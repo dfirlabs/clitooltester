@@ -241,17 +241,6 @@ class TestRunnerTest(test_lib.BaseTestCase):
 
         # TODO: Test with input set and subprocess.run success
 
-        # Test with missing configuration
-        mock_subprocess_run.reset_mock()
-
-        test_definition = resources.TestDefinition()
-        test_definition.name = "test"
-        test_definition.command = "mycommand"
-        test_definition.package = None
-
-        with self.assertRaises(ValueError):
-            runner._RunTestWithPackage(test_definition)
-
         # Test with subprocess.run failure
         mock_subprocess_run.reset_mock()
 
